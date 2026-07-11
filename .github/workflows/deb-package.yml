@@ -23,7 +23,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y dpkg-dev libgtk-4-1 policykit-1
+          sudo apt-get install -y dpkg-dev libgtk-4-1 policykit-1 xvfb
 
       - name: Cache Maven dependencies
         uses: actions/cache@v4
@@ -36,7 +36,7 @@ jobs:
         run: mvn -q install -DskipTests
 
       - name: Run tests
-        run: mvn test
+        run: xvfb-run -a mvn test
 
       - name: Build .deb package
         run: packaging/build-deb.sh
