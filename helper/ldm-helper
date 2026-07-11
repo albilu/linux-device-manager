@@ -1,0 +1,48 @@
+#!/bin/sh
+# ldm-helper — privileged device enable/disable for Linux Device Manager.
+# Launched via pkexec. Strict, auditable verb contract; re-validates all input.
+#
+# Verbs:
+#   disable-driver <syspath>   unbind the device's currently-bound driver
+#   enable-driver  <syspath>   ask the kernel to re-probe/bind a driver for the device
+#
+# The sysfs root can be overridden for testing via LDM_SYS_PREFIX (default /sys).
+set -eu
+
+fail() { echo "$1" >&2; exit "$2"; }
+
+[ "$#" -eq 2 ] || fail "usage: ldm-helper {enable-driver|disable-driver} <syspath>" 2
+
+verb="$1"
+syspath="$2"
+sys_prefix="${LDM_SYS_PREFIX:-/sys}"
+
+# Independent re-validation (defense in depth).
+case "$syspath" in
+    "$sys_prefix"/*) : ;;
+    *) fail "refusing: syspath must be under $sys_prefix" 3 ;;
+esac
+case "$syspath" in
+    *..*) fail "refusing: path traversal in syspath" 3 ;;
+esac
+[ -d "$syspath" ] || fail "no such device: $syspath" 3
+[ -L "$syspath/subsystem" ] || fail "not a device (no subsystem): $syspath" 3
+
+devid=$(basename "$syspath")
+subsystem_dir=$(readlink -f "$syspath/subsystem")
+
+case "$verb" in
+    disable-driver)
+        [ -L "$syspath/driver" ] || fail "no driver bound to $devid" 4
+        printf '%s' "$devid" > "$syspath/driver/unbind" || fail "unbind failed for $devid" 5
+        echo "disabled $devid"
+        ;;
+    enable-driver)
+        [ -w "$subsystem_dir/drivers_probe" ] || fail "cannot probe on $subsystem_dir" 5
+        printf '%s' "$devid" > "$subsystem_dir/drivers_probe" || fail "probe failed for $devid" 5
+        echo "enabled $devid"
+        ;;
+    *)
+        fail "unknown verb: $verb" 2
+        ;;
+esac

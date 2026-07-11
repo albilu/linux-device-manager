@@ -1,0 +1,296 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!-- Created with Cambalache 1.0.2 -->
+<interface>
+  <!-- interface-name main.ui -->
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="gio" version="2.0"/>
+  <!-- Device Context Menu (Enable/Disable) -->
+  <menu id="device_context_menu">
+    <section>
+      <item>
+        <attribute name="action">app.enable_device</attribute>
+        <attribute name="label">Enable Device</attribute>
+      </item>
+      <item>
+        <attribute name="action">app.disable_device</attribute>
+        <attribute name="label">Disable Device</attribute>
+      </item>
+    </section>
+  </menu>
+  <!-- Main Window Menu -->
+  <menu id="window_menu">
+    <submenu>
+      <attribute name="label">File</attribute>
+      <section>
+        <item>
+          <attribute name="action">app.refresh_devices</attribute>
+          <attribute name="label">Refresh Devices</attribute>
+        </item>
+        <item>
+          <attribute name="action">app.exit</attribute>
+          <attribute name="label">Exit</attribute>
+        </item>
+      </section>
+    </submenu>
+    <submenu>
+      <attribute name="label">Help</attribute>
+      <section>
+        <item>
+          <attribute name="action">app.about</attribute>
+          <attribute name="label">About</attribute>
+        </item>
+      </section>
+    </submenu>
+  </menu>
+  <!-- Tree Store for Categories and Devices -->
+  <object class="GtkTreeStore" id="device_store">
+    <columns>
+      <!-- col 0: icon-name, col 1: label -->
+      <column type="gchararray"/>
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0">multimedia-player</col>
+        <col id="1">Multimedia</col>
+        <row>
+          <col id="0">audio-card</col>
+          <col id="1">Intel HD Audio Controller</col>
+        </row>
+        <row>
+          <col id="0">camera-web</col>
+          <col id="1">Logitech HD Webcam C270</col>
+        </row>
+      </row>
+      <row>
+        <col id="0">network-wired</col>
+        <col id="1">Network</col>
+        <row>
+          <col id="0">network-wired</col>
+          <col id="1">Realtek PCIe GbE Family Controller</col>
+        </row>
+        <row>
+          <col id="0">network-wireless</col>
+          <col id="1">Intel Wi-Fi 6 AX200</col>
+        </row>
+      </row>
+      <row>
+        <col id="0">drive-harddisk</col>
+        <col id="1">Storage</col>
+        <row>
+          <col id="0">drive-harddisk-solidstate</col>
+          <col id="1">Samsung SSD 970 EVO Plus 1TB</col>
+        </row>
+        <row>
+          <col id="0">drive-harddisk</col>
+          <col id="1">WDC WD20EZAZ-00GGJB0</col>
+        </row>
+      </row>
+      <row>
+        <col id="0">drive-removable-media-usb</col>
+        <col id="1">USB</col>
+        <row>
+          <col id="0">drive-removable-media</col>
+          <col id="1">Linux Foundation 3.0 root hub</col>
+        </row>
+      </row>
+      <row>
+        <col id="0">computer</col>
+        <col id="1">PCI</col>
+        <row>
+          <col id="0">video-display</col>
+          <col id="1">NVIDIA Corporation GA106 [GeForce RTX 3060]</col>
+        </row>
+      </row>
+    </data>
+  </object>
+  <!-- Main Application Window -->
+  <object class="GtkApplicationWindow" id="main_window">
+    <property name="default-height">600</property>
+    <property name="default-width">900</property>
+    <property name="title">Linux Device Manager</property>
+    <child type="titlebar">
+      <object class="GtkHeaderBar" id="header_bar">
+        <property name="show-title-buttons">True</property>
+      </object>
+    </child>
+    <child>
+      <!-- Outer vertical box: paned on top, status bar on bottom -->
+      <object class="GtkBox" id="main_vbox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkPopoverMenuBar" id="main_menu_bar">
+            <property name="menu-model">window_menu</property>
+          </object>
+        </child>
+        <child>
+          <object class="GtkPaned" id="main_paned">
+            <property name="vexpand">True</property>
+        <property name="shrink-start-child">False</property>
+        <!-- Right Pane: Tabs for Details -->
+        <property name="end-child">
+          <object class="GtkNotebook" id="details_notebook">
+            <child>
+              <object class="GtkScrolledWindow" id="general_tab">
+                <property name="margin-bottom">12</property>
+                <property name="margin-end">12</property>
+                <property name="margin-start">12</property>
+                <property name="margin-top">12</property>
+                <property name="hscrollbar-policy">never</property>
+                <property name="vscrollbar-policy">automatic</property>
+                <child>
+                  <object class="GtkLabel" id="general_info_label">
+                    <property name="halign">start</property>
+                    <property name="label">Select a device to view general information.</property>
+                    <property name="valign">start</property>
+                    <property name="wrap">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel">
+                <property name="label">Details</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow" id="advanced_tab">
+                <property name="margin-bottom">12</property>
+                <property name="margin-end">12</property>
+                <property name="margin-start">12</property>
+                <property name="margin-top">12</property>
+                <property name="hscrollbar-policy">never</property>
+                <property name="vscrollbar-policy">automatic</property>
+                <child>
+                  <object class="GtkLabel" id="advanced_info_label">
+                    <property name="halign">start</property>
+                    <property name="label">Advanced hardware details (e.g. lshw output) will appear here.</property>
+                    <property name="valign">start</property>
+                    <property name="wrap">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel">
+                <property name="label">Advanced</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow" id="driver_tab">
+                <property name="margin-bottom">12</property>
+                <property name="margin-end">12</property>
+                <property name="margin-start">12</property>
+                <property name="margin-top">12</property>
+                <property name="hscrollbar-policy">never</property>
+                <property name="vscrollbar-policy">automatic</property>
+                <child>
+                  <object class="GtkLabel" id="driver_info_label">
+                    <property name="halign">start</property>
+                    <property name="label">Driver configuration and status (e.g. modinfo).</property>
+                    <property name="valign">start</property>
+                    <property name="wrap">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel">
+                <property name="label">Driver</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow" id="logs_scroll">
+                <property name="margin-bottom">12</property>
+                <property name="margin-end">12</property>
+                <property name="margin-start">12</property>
+                <property name="margin-top">12</property>
+                <child>
+                  <object class="GtkTextView" id="logs_text_view">
+                    <property name="cursor-visible">False</property>
+                    <property name="editable">False</property>
+                    <property name="wrap-mode">word</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child type="tab">
+              <object class="GtkLabel">
+                <property name="label">Sys Logs</property>
+              </object>
+            </child>
+          </object>
+        </property>
+        <property name="orientation">horizontal</property>
+        <property name="position">250</property>
+        <!-- Left Pane: Tree View -->
+        <property name="start-child">
+          <object class="GtkScrolledWindow" id="tree_scroll">
+            <property name="hscrollbar-policy">automatic</property>
+            <property name="min-content-width">200</property>
+            <property name="width-request">200</property>
+            <child>
+              <object class="GtkTreeView" id="device_tree_view">
+                <property name="headers-visible">True</property>
+                <property name="model">device_store</property>
+                <child>
+                  <object class="GtkTreeViewColumn" id="category_column">
+                    <property name="title">Devices</property>
+                    <!-- Icon renderer bound to col 0 -->
+                    <child>
+                      <object class="GtkCellRendererPixbuf" id="icon_renderer"/>
+                      <attributes>
+                        <attribute name="icon-name">0</attribute>
+                      </attributes>
+                    </child>
+                    <!-- Text renderer bound to col 1 -->
+                    <child>
+                      <object class="GtkCellRendererText" id="category_renderer"/>
+                      <attributes>
+                        <attribute name="text">1</attribute>
+                      </attributes>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </property>
+          </object>
+        </child>
+        <!-- Status Bar -->
+        <child>
+          <object class="GtkBox" id="status_bar">
+            <property name="orientation">horizontal</property>
+            <property name="spacing">6</property>
+            <property name="margin-start">8</property>
+            <property name="margin-end">8</property>
+            <property name="margin-top">4</property>
+            <property name="margin-bottom">4</property>
+            <child>
+              <object class="GtkSpinner" id="status_spinner">
+                <property name="spinning">False</property>
+                <property name="tooltip-text">Loading...</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkLabel" id="status_label">
+                <property name="label">Ready</property>
+                <property name="halign">start</property>
+                <property name="hexpand">True</property>
+                <property name="ellipsize">end</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkSpinner" id="status_progress_spinner">
+                <property name="visible">False</property>
+                <property name="spinning">False</property>
+                <property name="valign">center</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

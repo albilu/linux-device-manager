@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+# Ensure helper is executable (dpkg should preserve mode, but be safe).
+chmod 0755 /usr/libexec/ldm-helper
+# Reload polkit rules so the new policy takes effect immediately.
+if command -v pkaction >/dev/null 2>&1; then
+    pkaction --reload || true
+fi
+# Update icon cache so the app icon appears immediately.
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -f /usr/share/icons/hicolor >/dev/null 2>&1 || true
+fi
+# Update desktop database.
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database -q /usr/share/applications || true
+fi
