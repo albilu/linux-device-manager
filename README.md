@@ -1,96 +1,64 @@
 # Linux Device Manager
 
-A Windows Device Manager like program for Linux. The program is intended to be an advanced and easy to use device management tool for Linux users. It will provide a graphical interface to view and manage devices on the system.
+A Windows Device Manager-like graphical tool for Linux. Provides a clean, category-based interface to view, inspect, and manage hardware devices via sysfs/udev.
 
-## Hard Requirements
-
-- The program should really provide an Windows Device Manager like experience for Linux users. It should be able to display all devices on the system, including those that are not currently active or connected. It should also provide detailed information about each device, including its driver, status, and any errors or warnings.
-- UI design and layout `gui-gtk/main.ui` and `gui-gtk/image.png`: don't deviate from it.
-- Use the UI file instead of programmatically creating the UI.
-
-## Tech Stack
-
-- GTK UI (Java GI)
-- Qt UI (Qt Jambi)
-- Leverage Linux system APIs and existing programs like below to gather extended and comprehensive device information:
-    - lsusb
-    - lspci
-    - dmesg
-    - udevadm
-    - modprobe
-    - modinfo
-    - systemctl
-    - dmesg
-    - lshw
-    - etc. (or any other appropriate tools)
+![Screenshot](image.png)
 
 ## Features
 
-- Tree view of devices by category with details and actions:
-    - List devices by group categories (Multimedia, Network, Storage, USB, PCI, etc.)
-
-- Device details Panel with tabs:
-    - General info
-    - Advanced details
-    - Driver details
-    - Sys Logs/events
-
-- Context Menu Actions
-    - Enable/Disable device
-
-- Status bar with loading/progress indicators for long running operations
-
-## Roadmap
-
-V1: Complete functionality and features with GTK UI.
-V2: QT UI with all features of V1.
+- **Category tree** — devices grouped by type: Multimedia, Network, Storage, USB, PCI, etc.
+- **Detail tabs** — General info, Advanced details, Driver info, Kernel logs/events
+- **Device actions** — Enable / Disable devices (via polkit-protected privileged helper)
+- **Status bar** — Spinner and progress indicators for long-running operations
+- **GTK4 UI** — Defined via Cambalache `.ui` file (no programmatic widget creation)
 
 ## Architecture
 
-Multi modules:
+Multi-module Maven project:
 
-- core: core device management library
-- gui-gtk: GTK UI
-- gui-qt: Qt UI
+| Module | Path | Description |
+|--------|------|-------------|
+| `core` | `core/` | Device enumeration, categorization, detail providers, action service |
+| `gui-gtk` | `gui-gtk/` | GTK4 UI (java-gi bindings) |
+| `gui-qt` | `gui-qt/` | Qt UI — **V2 (planned)** |
 
-## Distribution
+Device data is gathered from sysfs, udev, and system tools (`lspci`, `lsusb`, `lshw`, `dmesg`, `modinfo`, etc.). Embedded static binaries are preferred over OS dependencies.
 
-- deb package for Debian/Ubuntu based distributions
-- appimage for other distributions
+## Prerequisites
 
-NOTE: Embedded static binaries (for example, `lsusb`, `lspci`, etc.) are preferred over external or OS dependencies to avoid issues with different versions of the same tool on different distributions.
+| Tool | Version | Notes |
+|------|---------|-------|
+| JDK | 25+ | java-gi GTK binding targets OpenJDK 25 |
+| Maven | 3.8+ | Build and tests |
+| `dpkg-deb` | — | Debian package assembly (Debian/Ubuntu only) |
 
-## Build
-
-Required tools:
-
-- JDK 25+ (java-gi GTK binding targets OpenJDK 25) and Maven for tests and JVM builds
-- `dpkg-deb` for Debian package assembly
-- `jlink` (bundled with JDK 25+) for trimmed runtime creation
-
-If the default `java` is older than 25, set `JAVA_HOME` to a JDK 25+ install before running Maven.
+If the default `java` is older than 25, set `JAVA_HOME` before running Maven:
 
 ```sh
 JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64 mvn test
 ```
 
-## Packaging
-
-### Prerequisites
-
-- JDK 25+ (`JAVA_HOME` must point to a JDK 25+ with `jlink`)
-- `dpkg-deb` (Debian/Ubuntu)
-- Maven 3.8+
-
-### Build the .deb
+## Build
 
 ```sh
-JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64 packaging/build-deb.sh
+# Compile and run tests
+mvn test
+
+# Compile only (skip tests)
+mvn install -DskipTests
 ```
 
-Or via Maven:
+## Package
+
+### Debian / Ubuntu (.deb)
+
+The .deb bundles a trimmed JRE (via `jlink`), application JARs, a launcher script, a polkit-protected privileged helper, a `.desktop` entry, and an SVG icon.
 
 ```sh
+# Build the .deb (default)
+JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64 packaging/build-deb.sh
+
+# Or via Maven profile
 JAVA_HOME=/usr/lib/jvm/java-25-openjdk-amd64 mvn package -Ppackage-deb -DskipTests
 ```
 
@@ -108,14 +76,17 @@ packaging/verify-deb.sh
 sudo dpkg -i packaging/dist/linux-device-manager_0.1.0-1_amd64.deb
 ```
 
-The package installs:
+Installed layout:
 
-- App + bundled JRE -> `/opt/linux-device-manager/`
-- Launcher -> `/usr/bin/linux-device-manager`
-- Privileged helper -> `/usr/libexec/ldm-helper`
-- Polkit policy -> `/usr/share/polkit-1/actions/org.ldm.policy`
-- Desktop entry -> `/usr/share/applications/linux-device-manager.desktop`
-- App icon -> `/usr/share/icons/hicolor/scalable/apps/linux-device-manager.svg`
+| Path | Content |
+|------|---------|
+| `/opt/linux-device-manager/runtime/` | Trimmed JRE (jlink) |
+| `/opt/linux-device-manager/lib/` | Application JARs + dependencies |
+| `/usr/bin/linux-device-manager` | Launcher script |
+| `/usr/libexec/ldm-helper` | Privileged device helper |
+| `/usr/share/polkit-1/actions/org.ldm.policy` | Polkit policy |
+| `/usr/share/applications/linux-device-manager.desktop` | Desktop entry |
+| `/usr/share/icons/hicolor/scalable/apps/linux-device-manager.svg` | App icon |
 
 ### Uninstall
 
@@ -125,4 +96,21 @@ sudo dpkg -r linux-device-manager
 
 ### AppImage
 
-Deferred for V1. GTK4 library bundling in AppImage is non-trivial (see V1 design spec).
+Deferred for V1 (GTK4 library bundling in AppImage is non-trivial).
+
+## Roadmap
+
+- **V1** — Complete functionality with GTK4 UI
+- **V2** — Qt UI with all V1 features
+
+## Development
+
+```
+linux-device-manager/
+├── core/                   # Core device management library
+├── gui-gtk/                # GTK4 UI (java-gi)
+├── gui-qt/                 # Qt UI (planned)
+├── helper/                 # Privileged helper script + polkit policy
+├── packaging/              # .deb build scripts, desktop files, control files
+└── docs/                   # Design specs and implementation plans
+```

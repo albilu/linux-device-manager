@@ -1,0 +1,84 @@
+name: Build .deb Package
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'oracle'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev libgtk-4-1 policykit-1
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-maven-
+
+      - name: Build JARs
+        run: mvn -q install -DskipTests
+
+      - name: Run tests
+        run: mvn test
+
+      - name: Build .deb package
+        run: packaging/build-deb.sh
+
+      - name: Verify .deb package
+        run: packaging/verify-deb.sh
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-device-manager-deb
+          path: packaging/dist/*.deb
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download .deb artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-device-manager-deb
+          path: dist/
+
+      - name: Generate release checksums
+        run: |
+          cd dist
+          sha256sum *.deb > SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          body: |
+            ## Linux Device Manager ${{ github.ref_name }}
+
+            ### Installation
+            ```sh
+            sudo dpkg -i linux-device-manager_*.deb
+            ```
