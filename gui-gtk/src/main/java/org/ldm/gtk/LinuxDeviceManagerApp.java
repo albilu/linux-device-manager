@@ -22,9 +22,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Map;
 import org.gnome.gdk.Rectangle;
+import org.gnome.gdk.Texture;
 import org.gnome.gio.ApplicationFlags;
 import org.gnome.gio.Menu;
 import org.gnome.gio.SimpleAction;
+import org.gnome.gtk.AboutDialog;
 import org.gnome.gtk.AlertDialog;
 import org.gnome.gtk.Application;
 import org.gnome.gtk.ApplicationWindow;
@@ -64,6 +66,7 @@ public final class LinuxDeviceManagerApp {
     private TreeView treeView;
     private SimpleAction enableAction;
     private SimpleAction disableAction;
+    private AboutDialog aboutDialog;
     private Device selectedDevice;
     private boolean actionInFlight;
 
@@ -179,12 +182,20 @@ public final class LinuxDeviceManagerApp {
             Out<Integer> cellX = new Out<>();
             Out<Integer> cellY = new Out<>();
             if (treeView.getPathAtPos((int) x, (int) y, path, column, cellX, cellY)) {
-                treeView.getSelection().selectPath(path.get());
+                selectPathIfNeeded(treeView.getSelection(), path.get());
             }
             popover.setPointingTo(new Rectangle((int) x, (int) y, 1, 1));
             popover.popup();
         });
         treeView.addController(rightClick);
+    }
+
+    static boolean selectPathIfNeeded(TreeSelection selection, TreePath path) {
+        if (selection.pathIsSelected(path)) {
+            return false;
+        }
+        selection.selectPath(path);
+        return true;
     }
 
     private void requestSetEnabled(boolean enabled) {
@@ -285,19 +296,30 @@ public final class LinuxDeviceManagerApp {
     }
 
     private void showAbout() {
-        AlertDialog dialog = new AlertDialog("Linux Device Manager");
-        dialog.setDetail("View and manage hardware devices on Linux.");
-        dialog.setButtons(new String[] {"OK"});
-        dialog.setCancelButton(0);
-        dialog.setDefaultButton(0);
+        if (aboutDialog != null) {
+            aboutDialog.present();
+            return;
+        }
+
+        AboutDialog dialog = new AboutDialog();
+        aboutDialog = dialog;
+        dialog.setTransientFor(window);
         dialog.setModal(true);
-        dialog.choose(window, null, (source, result, data) -> {
-            try {
-                dialog.chooseFinish(result);
-            } catch (GErrorException ignored) {
-                // Dismissing the about dialog needs no follow-up.
-            }
+        dialog.setProgramName("Linux Device Manager");
+        dialog.setVersion("0.1.0-SNAPSHOT");
+        dialog.setComments("View and manage hardware devices on Linux.");
+        dialog.setAuthors(new String[] {"Linux Device Manager contributors"});
+        Texture logo = loadAboutLogo();
+        if (logo != null) {
+            dialog.setLogo(logo);
+        } else {
+            dialog.setLogoIconName("linux-device-manager");
+        }
+        dialog.onCloseRequest(() -> {
+            aboutDialog = null;
+            return false;
         });
+        dialog.present();
     }
 
     private static DeviceManager buildManager() {
@@ -327,6 +349,19 @@ public final class LinuxDeviceManagerApp {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    static Texture loadAboutLogo() {
+        try (var in = LinuxDeviceManagerApp.class.getResourceAsStream("/linux-device-manager.svg")) {
+            if (in == null) {
+                return null;
+            }
+            return Texture.fromBytes(in.readAllBytes());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (GErrorException e) {
+            return null;
         }
     }
 
