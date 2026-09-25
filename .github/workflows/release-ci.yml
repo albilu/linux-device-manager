@@ -73,12 +73,11 @@ jobs:
                       test -s "$artifact" || { echo "MISSING artifact: $artifact" >&2; exit 1; }
                   done
 
-            - name: Create release and attach packages
+            - name: Create release
               uses: softprops/action-gh-release@v2
               with:
                   tag_name: ${{ github.ref_name }}
                   name: ${{ github.ref_name }}
-                  fail_on_unmatched_files: true
                   body: |
                       Packages for ${{ github.ref_name }}:
 
@@ -87,9 +86,20 @@ jobs:
                       - `linux-device-manager-${{ steps.version.outputs.version }}-1-x86_64.pkg.tar.zst` — Arch Linux
                       - `LinuxDeviceManager-${{ steps.version.outputs.version }}-x86_64.AppImage` — portable (needs host GTK4)
                       - `org.ldm.LinuxDeviceManager.flatpak` — Flatpak bundle (GNOME runtime)
-                  files: |
-                      packaging/dist/linux-device-manager_${{ steps.version.outputs.version }}-1_amd64.deb
-                      packaging/dist/linux-device-manager-${{ steps.version.outputs.version }}-1-x86_64.rpm
-                      packaging/dist/linux-device-manager-${{ steps.version.outputs.version }}-1-x86_64.pkg.tar.zst
-                      packaging/dist/LinuxDeviceManager-${{ steps.version.outputs.version }}-x86_64.AppImage
-                      packaging/dist/org.ldm.LinuxDeviceManager.flatpak
+
+            # Upload via gh CLI with explicit paths: the action's glob-based
+            # `files:` upload silently skipped the .rpm (file provably present),
+            # so asset attachment bypasses glob matching entirely. --clobber
+            # keeps re-runs idempotent.
+            - name: Upload release assets
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  VERSION: ${{ steps.version.outputs.version }}
+              run: |
+                  gh release upload "${{ github.ref_name }}" \
+                      "packaging/dist/linux-device-manager_${VERSION}-1_amd64.deb" \
+                      "packaging/dist/linux-device-manager-${VERSION}-1.x86_64.rpm" \
+                      "packaging/dist/linux-device-manager-${VERSION}-1-x86_64.pkg.tar.zst" \
+                      "packaging/dist/LinuxDeviceManager-${VERSION}-x86_64.AppImage" \
+                      "packaging/dist/org.ldm.LinuxDeviceManager.flatpak" \
+                      --clobber
