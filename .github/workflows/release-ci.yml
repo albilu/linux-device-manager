@@ -48,7 +48,7 @@ jobs:
             - name: Install test (.deb on clean Ubuntu)
               env:
                   VERSION: ${{ steps.version.outputs.version }}
-              run: docker run --rm -e VERSION -v "$(pwd)/packaging:/pkgs:ro" ubuntu:24.04 bash -c 'apt-get update -qq && apt-get install -y -qq "/pkgs/linux-device-manager_${VERSION}-1_amd64.deb" && test -x /usr/bin/linux-device-manager'
+              run: docker run --rm -e VERSION -v "$(pwd)/packaging/dist:/pkgs:ro" ubuntu:24.04 bash -c 'apt-get update -qq && apt-get install -y -qq "/pkgs/linux-device-manager_${VERSION}-1_amd64.deb" && test -x /usr/bin/linux-device-manager'
 
             - name: Build Flatpak bundle
               env:
@@ -73,8 +73,8 @@ jobs:
                       - `LinuxDeviceManager-${{ steps.version.outputs.version }}-x86_64.AppImage` — portable (needs host GTK4)
                       - `org.ldm.LinuxDeviceManager.flatpak` — Flatpak bundle (GNOME runtime)
                   files: |
-                      packaging/linux-device-manager_${{ steps.version.outputs.version }}-1_amd64.deb
-                      packaging/linux-device-manager-${{ steps.version.outputs.version }}-1-x86_64.rpm
-                      packaging/linux-device-manager-${{ steps.version.outputs.version }}-1-x86_64.pkg.tar.zst
-                      packaging/LinuxDeviceManager-${{ steps.version.outputs.version }}-x86_64.AppImage
-                      packaging/org.ldm.LinuxDeviceManager.flatpak
+                      packaging/dist/linux-device-manager_${{ steps.version.outputs.version }}-1_amd64.deb
+                      packaging/dist/linux-device-manager-${{ steps.version.outputs.version }}-1-x86_64.rpm
+                      packaging/dist/linux-device-manager-${{ steps.version.outputs.version }}-1-x86_64.pkg.tar.zst
+                      packaging/dist/LinuxDeviceManager-${{ steps.version.outputs.version }}-x86_64.AppImage
+                      packaging/dist/org.ldm.LinuxDeviceManager.flatpak

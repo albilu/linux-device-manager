@@ -4,7 +4,7 @@
 # packaging/stage, then assembles .deb / .rpm / .pkg.tar.zst / AppImage from
 # that tree (Flatpak consumes the same stage via packaging/flatpak/).
 # Run inside the ldm-dev Docker image (or any Linux with JDK 25, maven,
-# dpkg-deb, rpmbuild, bsdtar, zstd). Artifacts land in packaging/.
+# dpkg-deb, rpmbuild, bsdtar, zstd). Artifacts land in packaging/dist/.
 set -euo pipefail
 
 # Package metadata and the java-gi native bindings target Linux amd64.
@@ -31,6 +31,7 @@ RELEASE=1
 DEB_VERSION="${VERSION}-${RELEASE}"
 APP_ID_DIR="linux-device-manager"
 STAGE="$ROOT/packaging/stage"
+DIST="$ROOT/packaging/dist"
 INSTALL_DIR="/opt/${APP_ID_DIR}"
 RUNTIME="$STAGE${INSTALL_DIR}/runtime"
 APP_LIB="$STAGE${INSTALL_DIR}/lib"
@@ -42,7 +43,7 @@ mvn -q install -DskipTests
 
 log "Assembling application tree under $STAGE..."
 rm -rf "$STAGE"
-mkdir -p "$APP_LIB" \
+mkdir -p "$DIST" "$APP_LIB" \
     "$STAGE/usr/bin" \
     "$STAGE/usr/libexec" \
     "$STAGE/usr/share/polkit-1/actions" \
@@ -136,7 +137,7 @@ build_deb() {
     # Package permissions must not depend on the builder's umask.
     chmod -R u=rwX,go=rX "$debroot"
     dpkg-deb --root-owner-group --build -Zxz "$debroot" \
-        "$ROOT/packaging/${APP_ID_DIR}_${DEB_VERSION}_amd64.deb"
+        "$DIST/${APP_ID_DIR}_${DEB_VERSION}_amd64.deb"
     rm -rf "$debroot"
     log "Built ${APP_ID_DIR}_${DEB_VERSION}_amd64.deb"
 }
@@ -152,7 +153,7 @@ build_rpm() {
         > "$rpmtop/SPECS/linux-device-manager.spec"
     (cd "$rpmtop" && rpmbuild --define "_topdir $rpmtop" --define "stage $STAGE" \
         --nodeps --nocheck -bb "$rpmtop/SPECS/linux-device-manager.spec")
-    find "$rpmtop/RPMS" "$ROOT/rpmbuild/RPMS" -name "*.rpm" -exec mv {} "$ROOT/packaging/" \; 2>/dev/null || true
+    find "$rpmtop/RPMS" "$ROOT/rpmbuild/RPMS" -name "*.rpm" -exec mv {} "$DIST/" \; 2>/dev/null || true
     rm -rf "$rpmtop" "$ROOT/rpmbuild"
 }
 
@@ -222,7 +223,7 @@ EOF
     (cd "$archroot/pkg" && tar -C "$archroot/pkg" \
         --owner=0 --group=0 --numeric-owner \
         --use-compress-program="zstd -19 -T0" \
-        -cf "$ROOT/packaging/${APP_ID_DIR}-${VERSION}-${RELEASE}-x86_64.pkg.tar.zst" \
+        -cf "$DIST/${APP_ID_DIR}-${VERSION}-${RELEASE}-x86_64.pkg.tar.zst" \
         .PKGINFO .BUILDINFO .MTREE opt usr)
     rm -rf "$archroot"
     log "Built ${APP_ID_DIR}-${VERSION}-${RELEASE}-x86_64.pkg.tar.zst"
@@ -260,7 +261,7 @@ build_appimage() {
         tool_args+=(--appimage-extract-and-run)
     fi
     ARCH=x86_64 "$tool" "${tool_args[@]}" "$appdir" \
-        "$ROOT/packaging/LinuxDeviceManager-${VERSION}-x86_64.AppImage"
+        "$DIST/LinuxDeviceManager-${VERSION}-x86_64.AppImage"
     rm -rf "$appdir"
     log "Built LinuxDeviceManager-${VERSION}-x86_64.AppImage"
 }
@@ -271,5 +272,5 @@ build_arch
 build_appimage
 
 log "Artifacts:"
-ls -la "$ROOT/packaging/"*.deb "$ROOT/packaging/"*.rpm "$ROOT/packaging/"*.pkg.tar.zst "$ROOT/packaging/"*.AppImage 2>/dev/null || true
+ls -la "$DIST/"*.deb "$DIST/"*.rpm "$DIST/"*.pkg.tar.zst "$DIST/"*.AppImage 2>/dev/null || true
 log "Done. (Flatpak consumes packaging/stage via packaging/flatpak/build-flatpak.sh.)"

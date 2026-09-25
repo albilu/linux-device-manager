@@ -12,15 +12,15 @@ if [ "$#" -eq 1 ]; then
     DEB=$(readlink -f -- "$1") || fail "invalid package path: $1"
 else
     cd "$ROOT"
-    # Canonical artifacts land in packaging/; packaging/dist keeps older builds.
+    # Canonical artifacts land in packaging/dist/; legacy packaging/*.deb still accepted.
     matches=""
-    for candidate in packaging/linux-device-manager_*.deb packaging/dist/linux-device-manager_*.deb; do
+    for candidate in packaging/dist/linux-device-manager_*.deb packaging/linux-device-manager_*.deb; do
         [ -f "$candidate" ] || continue
         matches="$matches $candidate"
     done
     # shellcheck disable=SC2086
     set -- $matches
-    [ "$#" -eq 1 ] || fail "specify one .deb explicitly (none or multiple found in packaging/ and packaging/dist)"
+    [ "$#" -eq 1 ] || fail "specify one .deb explicitly (none or multiple found in packaging/dist/ and packaging/)"
     DEB="$1"
 fi
 [ -f "$DEB" ] || fail "no package found: $DEB"

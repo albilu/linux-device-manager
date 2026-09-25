@@ -4,16 +4,17 @@
 # Fails fast; also enforces byte-identical payloads across deb/rpm/arch.
 set -euo pipefail
 PACKAGE_ROOT="$(cd "$(dirname "$0")" && pwd)"
+DIST="$PACKAGE_ROOT/dist"
 VERSION="${1:?Pass the package version}"
 [[ "$VERSION" =~ ^[0-9]+([.][0-9]+){1,3}$ ]] || exit 2
 DEB_VERSION="${VERSION}-1"
 APP=linux-device-manager
 CHECK_ROOT="$(mktemp -d)"
 trap 'rm -rf "$CHECK_ROOT"' EXIT
-DEB="$PACKAGE_ROOT/${APP}_${DEB_VERSION}_amd64.deb"
-RPM="$PACKAGE_ROOT/${APP}-${DEB_VERSION}.x86_64.rpm"
-ARCH="$PACKAGE_ROOT/${APP}-${DEB_VERSION}-x86_64.pkg.tar.zst"
-APPIMAGE="$PACKAGE_ROOT/LinuxDeviceManager-${VERSION}-x86_64.AppImage"
+DEB="$DIST/${APP}_${DEB_VERSION}_amd64.deb"
+RPM="$DIST/${APP}-${DEB_VERSION}.x86_64.rpm"
+ARCH="$DIST/${APP}-${DEB_VERSION}-x86_64.pkg.tar.zst"
+APPIMAGE="$DIST/LinuxDeviceManager-${VERSION}-x86_64.AppImage"
 for artifact in "$DEB" "$RPM" "$ARCH"; do test -s "$artifact"; done
 
 # ---- .deb fields ----
@@ -140,7 +141,7 @@ else
 fi
 
 # ---- Flatpak bundle presence (sandbox launch is opt-in via FLATPAK_SMOKE=1) ----
-FLATPAK_BUNDLE="$PACKAGE_ROOT/org.ldm.LinuxDeviceManager.flatpak"
+FLATPAK_BUNDLE="$DIST/org.ldm.LinuxDeviceManager.flatpak"
 if [[ -s "$FLATPAK_BUNDLE" ]]; then
     echo "OK: Flatpak bundle present"
     if [[ "${FLATPAK_SMOKE:-0}" == "1" ]]; then

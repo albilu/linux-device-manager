@@ -6,6 +6,7 @@ packaging/*.deb
 packaging/*.rpm
 packaging/*.pkg.tar.zst
 packaging/*.AppImage
+packaging/*.flatpak
 packaging/stage*/
 packaging/appimage/*.AppDir
 .flatpak-builder/

@@ -11,9 +11,9 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def find_archives():
-    """Canonical artifacts land in packaging/; packaging/dist keeps older builds."""
-    return sorted((ROOT / "packaging").glob("linux-device-manager_*.deb")) + \
-        sorted((ROOT / "packaging/dist").glob("linux-device-manager_*.deb"))
+    """Canonical artifacts land in packaging/dist/; legacy packaging/*.deb still accepted."""
+    return sorted((ROOT / "packaging/dist").glob("linux-device-manager_*.deb")) + \
+        sorted((ROOT / "packaging").glob("linux-device-manager_*.deb"))
 
 
 class VerifyDebTest(unittest.TestCase):

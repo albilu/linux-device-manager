@@ -28,7 +28,7 @@
 - Use `make run` to launch the GTK application with X11 forwarding; use
   `make debug` for the suspended JDWP server on port 5005.
 - Use `make package` to create `.deb`, `.rpm`, `.pkg.tar.zst`, and AppImage
-  artifacts under `packaging/` from the single `packaging/stage` tree
+  artifacts under `packaging/dist/` from the single `packaging/stage` tree
   (JARs + bundled jlink runtime); use `packaging/flatpak/build-flatpak.sh`
   for the Flatpak bundle, which consumes the same stage.
 

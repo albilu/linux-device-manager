@@ -42,7 +42,7 @@ flatpak-builder --force-clean --user --install-deps-from=flathub \
     --repo="$REPO_DIR" "${EXTRA_ARGS[@]}" \
     "$BUILD_DIR" "$FLATPAK_DIR/$APP_ID.yml"
 
-BUNDLE="$ROOT/packaging/$APP_ID.flatpak"
+BUNDLE="$ROOT/packaging/dist/$APP_ID.flatpak"
 log "Bundling $BUNDLE..."
 flatpak build-bundle "$REPO_DIR" "$BUNDLE" "$APP_ID" stable
 ls -la "$BUNDLE"
