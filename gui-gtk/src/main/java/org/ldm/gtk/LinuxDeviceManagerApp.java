@@ -415,7 +415,7 @@ public final class LinuxDeviceManagerApp {
         dialog.setTransientFor(window);
         dialog.setModal(true);
         dialog.setProgramName("Linux Device Manager");
-        dialog.setVersion("0.2.1-SNAPSHOT");
+        dialog.setVersion("0.2.0");
         dialog.setComments("View and manage hardware devices on Linux.");
         dialog.setAuthors(new String[] {"Linux Device Manager contributors"});
         Texture logo = loadAboutLogo();
