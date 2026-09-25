@@ -7,9 +7,8 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * Enables/disables a device by driver (un)binding, executed through a
- * privileged helper launched
- * via {@code pkexec}. The core validates inputs syntactically; the helper
+ * Enables/disables a device by USB authorization or driver (un)binding through a
+ * privileged helper launched via {@code pkexec}. The core validates inputs syntactically; the helper
  * re-validates independently.
  */
 public final class DeviceActionService {
@@ -27,18 +26,28 @@ public final class DeviceActionService {
         this.helper = helperPath;
     }
 
-    /** A device can be disabled if it currently has a driver bound. */
+    /** Capabilities are bus-specific; the generic USB parent driver is not functional state. */
     public boolean canDisable(Device device) {
-        return device.driver().isPresent();
+        if (!device.disableSupported() || device.instanceId().isEmpty()) return false;
+        return switch (device.actionKind()) {
+            case USB_AUTHORIZATION -> device.authorized().orElse(false);
+            case DRIVER_BINDING -> device.driver().isPresent();
+            case NONE -> false;
+        };
     }
 
-    /** A device can be (re)enabled if it currently has no driver bound. */
+    /** Unsupported class entries have no action, regardless of their inherited driver. */
     public boolean canEnable(Device device) {
-        return device.driver().isEmpty();
+        if (!device.enableSupported() || device.instanceId().isEmpty()) return false;
+        return switch (device.actionKind()) {
+            case USB_AUTHORIZATION -> device.authorized().map(a -> !a).orElse(false);
+            case DRIVER_BINDING -> device.driver().isEmpty();
+            case NONE -> false;
+        };
     }
 
     /**
-     * Enable (re-probe) or disable (unbind driver) the device.
+     * Authorize/deauthorize USB devices, or probe/unbind other supported bus devices.
      *
      * @return a typed result the UI can present (success / auth-cancelled / failed
      *         / unsupported)
@@ -48,11 +57,13 @@ public final class DeviceActionService {
         if (syspath == null || !syspath.startsWith("/sys/") || syspath.contains("..")) {
             return DeviceActionResult.unsupported("Refusing to act on an invalid device path.");
         }
-        if (!enabled && !canDisable(device)) {
-            return DeviceActionResult.unsupported("This device has no driver to disable.");
+        if (enabled ? !canEnable(device) : !canDisable(device)) {
+            return DeviceActionResult.unsupported("This operation is not supported in the device's current state.");
         }
-        String verb = enabled ? "enable-driver" : "disable-driver";
-        CommandResult r = runner.run(TIMEOUT, List.of(pkexec, helper, verb, syspath));
+        String verb = (enabled ? "enable-" : "disable-")
+                + (device.actionKind() == org.ldm.core.model.DeviceActionKind.USB_AUTHORIZATION ? "usb" : "driver");
+        CommandResult r = runner.run(TIMEOUT, List.of(pkexec, helper, verb, syspath, device.instanceId()));
+        if (r.timedOut()) return DeviceActionResult.failed("The device operation timed out. Refresh to check its current state.");
         return switch (r.exitCode()) {
             case 0 -> DeviceActionResult.success();
             case 126 -> DeviceActionResult.authCancelled();

@@ -1,0 +1,28 @@
+name: Test CI
+
+on:
+    workflow_call:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+permissions:
+    contents: read
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.sha }}
+
+            - name: Build Docker image
+              run: ./docker-build.sh build
+
+            # Full suite in the project image: JDK 25, GTK4, hardware
+            # tooling (lspci/lsusb/modinfo/udevadm), xdotool and Xvfb —
+            # all provided by the Dockerfile (see AGENTS.md).
+            - name: Run tests
+              run: ./docker-build.sh test

@@ -1,0 +1,18 @@
+#!/bin/sh
+# AppRun for the Linux Device Manager AppImage.
+# The AppDir mirrors packaging/stage, so paths resolve relative to APPDIR.
+# GTK4 comes from the host system (same requirement as the .deb).
+set -eu
+APPDIR="$(dirname "$(readlink -f "$0")")"
+APP_HOME="$APPDIR/opt/linux-device-manager"
+if [ -x "$APP_HOME/runtime/bin/java" ]; then
+    exec "$APP_HOME/runtime/bin/java" \
+        --enable-native-access=ALL-UNNAMED \
+        -cp "$APP_HOME/lib/*" \
+        org.ldm.gtk.LinuxDeviceManagerApp "$@"
+else
+    exec java \
+        --enable-native-access=ALL-UNNAMED \
+        -cp "$APP_HOME/lib/*" \
+        org.ldm.gtk.LinuxDeviceManagerApp "$@"
+fi

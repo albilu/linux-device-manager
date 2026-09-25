@@ -1,0 +1,32 @@
+# Maintainer: Linux Device Manager <dev@example.com>
+pkgname=linux-device-manager
+pkgver=__VERSION__
+pkgrel=1
+pkgdesc="View and manage hardware devices (bundled Java runtime)"
+arch=('x86_64')
+url="https://github.com/albilu/linux-device-manager"
+license=('custom:UNKNOWN')
+depends=(
+    'gtk4>=4.14.5'
+    'polkit'
+    'systemd'
+)
+optdepends=(
+    'pciutils: PCI device details via lspci'
+    'usbutils: USB device details via lsusb'
+    'kmod: driver details via modinfo'
+)
+source=("opt-linux-device-manager.tar")
+noextract=()
+
+package() {
+    cp -a "${srcdir}/opt" "${pkgdir}/"
+    cp -a "${srcdir}/usr" "${pkgdir}/"
+    chmod 755 "${pkgdir}/usr/bin/linux-device-manager"
+    chmod 755 "${pkgdir}/usr/libexec/ldm-helper"
+    install -Dm644 "${srcdir}/usr/share/doc/linux-device-manager/copyright" \
+        "${pkgdir}/usr/share/licenses/${pkgname}/copyright"
+}
+
+# The source tarball is assembled by packaging/build-packages.sh from the
+# staged install tree (bundled jlink runtime + application JARs).

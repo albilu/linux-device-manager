@@ -1,0 +1,14 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Linux Device Manager
+GenericName=Hardware Device Manager
+Comment=View and manage hardware devices
+Comment[fr]=Voir et gérer les périphériques matériels
+Exec=linux-device-manager
+Icon=linux-device-manager
+Terminal=false
+Categories=System;HardwareSettings;
+Keywords=device;hardware;driver;usb;pci;sysfs;
+StartupNotify=true
+StartupWMClass=com.example.DeviceManager

@@ -40,7 +40,7 @@ class SysfsScannerTest {
         assertEquals(1, devices.size());
         SysfsDevice d = devices.get(0);
         assertEquals(Bus.USB, d.bus());
-        assertEquals(0x0e, d.usbClass());
+        assertEquals(0x0e, d.usbInterfaces().getFirst().classCode());
         assertEquals(Optional.of(true), d.authorized());
         assertEquals(Optional.of("uvcvideo"), d.driver());
     }

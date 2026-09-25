@@ -1,48 +1,107 @@
 #!/bin/sh
-# ldm-helper — privileged device enable/disable for Linux Device Manager.
-# Launched via pkexec. Strict, auditable verb contract; re-validates all input.
-#
-# Verbs:
-#   disable-driver <syspath>   unbind the device's currently-bound driver
-#   enable-driver  <syspath>   ask the kernel to re-probe/bind a driver for the device
-#
-# The sysfs root can be overridden for testing via LDM_SYS_PREFIX (default /sys).
+# Privileged, independently validated actions. Success means the postcondition was observed.
+# LDM_SYS_PREFIX is for unprivileged fake-sysfs tests; pkexec clears the caller's environment.
 set -eu
-
 fail() { echo "$1" >&2; exit "$2"; }
-
-[ "$#" -eq 2 ] || fail "usage: ldm-helper {enable-driver|disable-driver} <syspath>" 2
-
+[ "$#" -eq 3 ] || fail "usage: ldm-helper {enable-driver|disable-driver|enable-usb|disable-usb} <syspath> <instance-id>" 2
 verb="$1"
 syspath="$2"
-sys_prefix="${LDM_SYS_PREFIX:-/sys}"
-
-# Independent re-validation (defense in depth).
-case "$syspath" in
-    "$sys_prefix"/*) : ;;
-    *) fail "refusing: syspath must be under $sys_prefix" 3 ;;
-esac
-case "$syspath" in
-    *..*) fail "refusing: path traversal in syspath" 3 ;;
-esac
+expected_instance="$3"
+case "$expected_instance" in ''|*[!0-9a-f]*) fail "invalid device instance" 3 ;; esac
+[ "${#expected_instance}" -eq 64 ] || fail "invalid device instance" 3
+sys_prefix=$(readlink -f "${LDM_SYS_PREFIX:-/sys}")
+case "$verb" in enable-driver|disable-driver|enable-usb|disable-usb) : ;; *) fail "unknown verb: $verb" 2 ;; esac
+case "$syspath" in "$sys_prefix"/*) : ;; *) fail "refusing: syspath must be under $sys_prefix" 3 ;; esac
+case "$syspath" in *..*) fail "refusing: path traversal in syspath" 3 ;; esac
+syspath=$(readlink -f "$syspath") || fail "no such device" 3
+case "$syspath" in "$sys_prefix"/*) : ;; *) fail "refusing: symlink outside sysfs" 3 ;; esac
 [ -d "$syspath" ] || fail "no such device: $syspath" 3
 [ -L "$syspath/subsystem" ] || fail "not a device (no subsystem): $syspath" 3
-
-devid=$(basename "$syspath")
 subsystem_dir=$(readlink -f "$syspath/subsystem")
+case "$subsystem_dir" in "$sys_prefix"/bus/*) : ;; *) fail "not a manageable bus device" 3 ;; esac
+devid=$(basename "$syspath")
+# Pin USB attribute writes to this directory. Replacing the pathname after this cd cannot
+# redirect a relative authorization write to the replacement's directory.
+cd "$syspath" || fail "device disappeared; refresh the device list" 7
+
+instance_id() {
+    identity_data=$(
+        stat -Lc '%d:%i' . || exit 1
+        for attribute in idVendor idProduct busnum devnum serial; do
+            value=
+            if [ -f ./idVendor ] && [ -f "./$attribute" ]; then
+                value=$(cat "./$attribute") || exit 1
+            fi
+            printf '%s\n' "$value"
+        done
+        printf '.\n'
+    ) || return 1
+    printf '%s\n' "$identity_data" | sha256sum | cut -d ' ' -f 1
+}
+verify_instance() {
+    [ "$syspath" -ef . ] && [ -L ./subsystem ] \
+        && [ "$(instance_id)" = "$expected_instance" ] \
+        || fail "device changed or disconnected; refresh the device list before trying again" 7
+}
+verify_instance
 
 case "$verb" in
-    disable-driver)
-        [ -L "$syspath/driver" ] || fail "no driver bound to $devid" 4
-        printf '%s' "$devid" > "$syspath/driver/unbind" || fail "unbind failed for $devid" 5
-        echo "disabled $devid"
-        ;;
-    enable-driver)
-        [ -w "$subsystem_dir/drivers_probe" ] || fail "cannot probe on $subsystem_dir" 5
-        printf '%s' "$devid" > "$subsystem_dir/drivers_probe" || fail "probe failed for $devid" 5
-        echo "enabled $devid"
-        ;;
-    *)
-        fail "unknown verb: $verb" 2
+    *-driver)
+        case "$(basename "$subsystem_dir")" in
+            pci|platform|acpi|pnp|hid|serio|i2c|spi|scsi|hdaudio|auxiliary|pci_express|wmi|mei|sdio|virtio|amba|xen|mdio|thunderbolt|mmc) : ;;
+            *) fail "driver binding is not supported for this subsystem" 3 ;;
+        esac
         ;;
 esac
+
+usb_bound() {
+    for iface in ./*; do
+        if [ -f "$iface/bInterfaceClass" ] && [ -e "$iface/driver" ]; then return 0; fi
+    done
+    return 1
+}
+observed() {
+    case "$verb" in
+        enable-driver) [ -e ./driver ] ;;
+        disable-driver) [ ! -L ./driver ] ;;
+        enable-usb) [ "$(cat ./authorized)" = 1 ] ;;
+        disable-usb) [ "$(cat ./authorized)" = 0 ] && ! usb_bound ;;
+    esac
+}
+case "$verb" in
+    enable-usb|disable-usb)
+        [ "$subsystem_dir" = "$sys_prefix/bus/usb" ] && [ -f ./idVendor ] && [ -f ./authorized ] \
+            || fail "not a USB device with authorization support" 3
+        value=0
+        [ "$verb" != enable-usb ] || value=1
+        verify_instance
+        printf '%s' "$value" > ./authorized || fail "USB authorization failed for $devid" 5
+        ;;
+    disable-driver)
+        [ "$subsystem_dir" != "$sys_prefix/bus/usb" ] || fail "use USB authorization for USB devices" 3
+        [ -L ./driver ] || fail "no driver bound to $devid" 4
+        driver_dir=$(readlink -f ./driver)
+        case "$driver_dir" in "$subsystem_dir"/drivers/*) : ;; *) fail "invalid driver path" 3 ;; esac
+        [ -f "$driver_dir/unbind" ] || fail "this driver does not support disabling $devid" 4
+        verify_instance
+        printf '%s' "$devid" > "$driver_dir/unbind" || fail "unbind failed for $devid" 5
+        ;;
+    enable-driver)
+        [ "$subsystem_dir" != "$sys_prefix/bus/usb" ] || fail "use USB authorization for USB devices" 3
+        [ -w "$subsystem_dir/drivers_probe" ] || fail "cannot probe on $subsystem_dir" 5
+        verify_instance
+        printf '%s' "$devid" > "$subsystem_dir/drivers_probe" || fail "probe failed for $devid" 5
+        ;;
+esac
+attempt=0
+while [ "$attempt" -lt 40 ]; do
+    [ -L ./subsystem ] || fail "device disappeared while applying $verb" 6
+    verify_instance
+    if observed; then
+        echo "verified $verb $devid"
+        exit 0
+    fi
+    attempt=$((attempt + 1))
+    sleep 0.05
+done
+fail "requested device state was not reached for $devid ($verb)" 6

@@ -59,8 +59,8 @@ class CategorizerTest {
     }
 
     @Test
-    void pciUnknownClassIsOther() {
-        assertEquals(DeviceCategory.OTHER, categorizer.categorize(pci(0xff0000)));
+    void pciUnknownClassHasPciFallbackGroup() {
+        assertEquals(DeviceCategory.PCI, categorizer.categorize(pci(0xff0000)));
     }
 
     @Test

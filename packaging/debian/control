@@ -1,0 +1,16 @@
+Package: linux-device-manager
+Version: __VERSION__
+Section: utils
+Priority: optional
+Architecture: amd64
+Maintainer: Linux Device Manager <dev@example.com>
+Depends: libgtk-4-1 (>= 4.14.5), policykit-1, udev
+Recommends: pciutils, usbutils, kmod, systemd
+Description: View and manage hardware devices
+ Linux Device Manager is a GTK4 application that enumerates devices
+ from sysfs/udev, displays them in a category tree with detail tabs
+ (general, advanced, driver, logs), and allows enabling/disabling
+ devices through a privileged helper governed by polkit.
+ .
+ Bundles a trimmed JRE (jlink). Depends on the system GTK4 runtime.
+Homepage: https://github.com/albilu/linux-device-manager

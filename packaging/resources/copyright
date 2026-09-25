@@ -1,0 +1,12 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: linux-device-manager
+Upstream-Contact: Linux Device Manager <dev@example.com>
+Source: https://github.com/albilu/linux-device-manager
+
+Files: *
+Copyright: Linux Device Manager contributors
+# TODO: upstream has no LICENSE file yet; replace the license paragraph below
+# once one is declared and mirror it into packaging metadata (debian/control,
+# rpm spec, PKGBUILD, metainfo project_license).
+License: UNKNOWN
+  No license has been declared for this upstream project yet.

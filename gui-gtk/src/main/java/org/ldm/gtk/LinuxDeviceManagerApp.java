@@ -21,6 +21,9 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.List;
+import org.gnome.gdk.Gdk;
+import org.gnome.gdk.ModifierType;
 import org.gnome.gdk.Rectangle;
 import org.gnome.gdk.Texture;
 import org.gnome.gio.ApplicationFlags;
@@ -31,11 +34,15 @@ import org.gnome.gtk.AlertDialog;
 import org.gnome.gtk.Application;
 import org.gnome.gtk.ApplicationWindow;
 import org.gnome.gtk.GestureClick;
+import org.gnome.gtk.EventControllerKey;
 import org.gnome.gtk.GtkBuilder;
 import org.gnome.gtk.Label;
+import org.gnome.gtk.Notebook;
 import org.gnome.gtk.PopoverMenu;
-import org.gnome.gtk.ScrolledWindow;
+import org.gnome.gtk.PropagationPhase;
+import org.gnome.gtk.Widget;
 import org.gnome.gtk.Spinner;
+import org.gnome.gtk.SearchEntry;
 import org.gnome.gtk.TextView;
 import org.gnome.gtk.TreeIter;
 import org.gnome.gtk.TreeModel;
@@ -56,7 +63,7 @@ public final class LinuxDeviceManagerApp {
     private final Application app;
     private final DeviceManager manager;
     private final DeviceActionService actionService;
-    private final UiExecutor ui = new UiExecutor();
+    private final UiExecutor ui;
 
     private ApplicationWindow window;
     private StatusController status;
@@ -66,21 +73,34 @@ public final class LinuxDeviceManagerApp {
     private TreeView treeView;
     private SimpleAction enableAction;
     private SimpleAction disableAction;
+    private SimpleAction refreshAction;
+    private Label treeStateLabel;
     private AboutDialog aboutDialog;
     private Device selectedDevice;
     private boolean actionInFlight;
+    private boolean refreshInFlight;
+    private boolean closed;
 
     public LinuxDeviceManagerApp() {
+        this(buildManager(), new DeviceActionService(new ProcessCommandRunner(),
+                new ToolLocator(null).locate("pkexec"), "/usr/libexec/ldm-helper"), new UiExecutor());
+    }
+
+    LinuxDeviceManagerApp(DeviceManager manager, DeviceActionService actionService, UiExecutor ui) {
         app = new Application("com.example.DeviceManager", ApplicationFlags.DEFAULT_FLAGS);
         app.onActivate(this::activate);
-        manager = buildManager();
-        actionService = new DeviceActionService(
-                new ProcessCommandRunner(),
-                new ToolLocator(null).locate("pkexec"),
-                "/usr/libexec/ldm-helper");
+        this.manager = manager;
+        this.actionService = actionService;
+        this.ui = ui;
+        app.onShutdown(() -> {
+            closed = true;
+            if (detailController != null) detailController.clearSelection();
+            ui.close();
+        });
     }
 
     private void activate() {
+        if (window != null) { window.present(); return; }
         GtkBuilder builder = GtkBuilder.fromString(loadUi(), -1);
         window = (ApplicationWindow) builder.getObject("main_window");
         window.setApplication(app);
@@ -88,6 +108,7 @@ public final class LinuxDeviceManagerApp {
         store = (TreeStore) builder.getObject("device_store");
         treeView = (TreeView) builder.getObject("device_tree_view");
         treeController = new DeviceTreeController(store);
+        treeStateLabel = (Label) builder.getObject("tree_state_label");
 
         Spinner statusSpinner = (Spinner) builder.getObject("status_spinner");
         Label statusLabel = (Label) builder.getObject("status_label");
@@ -99,6 +120,9 @@ public final class LinuxDeviceManagerApp {
         status = new StatusController(statusSpinner, statusLabel);
         detailController = new DetailController(
                 manager, ui, status, generalLabel, advancedLabel, driverLabel, logsView);
+        Notebook notebook = (Notebook) builder.getObject("details_notebook");
+        detailController.showTab(DetailTab.values()[Math.max(0, notebook.getCurrentPage())]);
+        notebook.onSwitchPage((page, index) -> detailController.showTab(DetailTab.values()[index]));
 
         TreeSelection selection = treeView.getSelection();
         selection.onChanged(() -> onSelectionChanged(selection));
@@ -134,11 +158,12 @@ public final class LinuxDeviceManagerApp {
 
     private void updateActionState(Device device) {
         if (enableAction != null) {
-            enableAction.setEnabled(!actionInFlight && device != null && actionService.canEnable(device));
+            enableAction.setEnabled(!actionInFlight && !refreshInFlight && device != null && actionService.canEnable(device));
         }
         if (disableAction != null) {
-            disableAction.setEnabled(!actionInFlight && device != null && actionService.canDisable(device));
+            disableAction.setEnabled(!actionInFlight && !refreshInFlight && device != null && actionService.canDisable(device));
         }
+        if (refreshAction != null) refreshAction.setEnabled(!actionInFlight && !refreshInFlight);
     }
 
     private void setUpActions() {
@@ -152,7 +177,7 @@ public final class LinuxDeviceManagerApp {
         disableAction.onActivate(variant -> requestSetEnabled(false));
         app.addAction(disableAction);
 
-        SimpleAction refreshAction = new SimpleAction("refresh_devices", null);
+        refreshAction = new SimpleAction("refresh_devices", null);
         refreshAction.onActivate(variant -> refreshDevices());
         app.addAction(refreshAction);
 
@@ -166,28 +191,83 @@ public final class LinuxDeviceManagerApp {
     }
 
     private void setUpContextMenu(GtkBuilder builder) {
+        SearchEntry search = (SearchEntry) builder.getObject("device_search_entry");
+        // Supplying an authored entry bypasses TreeView's broken internal search popup.
+        treeView.setSearchEntry(search);
+        treeView.setSearchColumn(1);
+        search.setSearchDelay(0);
+        search.onStopSearch(() -> treeView.grabFocus());
+        search.onActivate(() -> treeView.grabFocus());
+        treeView.onStartInteractiveSearch(() -> {
+            search.grabFocus();
+            return true;
+        });
         Menu menuModel = (Menu) builder.getObject("device_context_menu");
         PopoverMenu popover = PopoverMenu.fromModel(menuModel);
-        // Parent to the ScrolledWindow ancestor: parenting a PopoverMenu to a TreeView trips
-        // gtk_css_node_insert_after (Gtk-CRITICAL) in GTK 4.22.
-        ScrolledWindow scroll = (ScrolledWindow) builder.getObject("tree_scroll");
-        popover.setParent(scroll);
+        // Keep the popup outside the TreeView/ScrolledWindow internal child hierarchies.
+        // Their row/scrollbar CSS reordering can otherwise encounter the popup's CSS node.
+        Widget parent = (Widget) builder.getObject("tree_overlay");
+        popover.setParent(parent);
         popover.setHasArrow(false);
 
         GestureClick rightClick = new GestureClick();
         rightClick.setButton(3);
         rightClick.onPressed((pressCount, x, y) -> {
+            Out<Integer> binX = new Out<>();
+            Out<Integer> binY = new Out<>();
+            treeView.convertWidgetToBinWindowCoords((int) x, (int) y, binX, binY);
             Out<TreePath> path = new Out<>();
             Out<TreeViewColumn> column = new Out<>();
             Out<Integer> cellX = new Out<>();
             Out<Integer> cellY = new Out<>();
-            if (treeView.getPathAtPos((int) x, (int) y, path, column, cellX, cellY)) {
+            if (treeView.getPathAtPos(binX.get(), binY.get(), path, column, cellX, cellY)) {
                 selectPathIfNeeded(treeView.getSelection(), path.get());
+            } else {
+                treeView.getSelection().unselectAll();
             }
-            popover.setPointingTo(new Rectangle((int) x, (int) y, 1, 1));
-            popover.popup();
+            showContextMenu(popover, parent, x, y);
         });
         treeView.addController(rightClick);
+
+        EventControllerKey keys = new EventControllerKey();
+        // Capture on the ancestor before TreeView forwards keys to its interactive search popup.
+        keys.setPropagationPhase(PropagationPhase.CAPTURE);
+        keys.onKeyPressed((key, code, modifiers) -> {
+            if (!treeView.hasFocus()) return false;
+            boolean control = modifiers.contains(ModifierType.CONTROL_MASK);
+            boolean shortcut = control || modifiers.contains(ModifierType.ALT_MASK)
+                    || modifiers.contains(ModifierType.SUPER_MASK) || modifiers.contains(ModifierType.META_MASK);
+            int character = Gdk.keyvalToUnicode(key);
+            if ((control && (key == Gdk.KEY_f || key == Gdk.KEY_F))
+                    || (!shortcut && character > 32 && !Character.isISOControl(character))) {
+                search.setText("");
+                search.grabFocus();
+                if (!control) keys.forward((Widget) search.getDelegate());
+                return true;
+            }
+            if (key != Gdk.KEY_Menu && !(key == Gdk.KEY_F10 && modifiers.contains(ModifierType.SHIFT_MASK)))
+                return false;
+            TreeIter iter = new TreeIter();
+            Out<TreeModel> model = new Out<>();
+            if (!treeView.getSelection().getSelected(model, iter)) return true;
+            Rectangle cell = new Rectangle();
+            treeView.getCellArea(store.getPath(iter), treeView.getColumn(0), cell);
+            Out<Integer> x = new Out<>();
+            Out<Integer> y = new Out<>();
+            treeView.convertBinWindowToWidgetCoords(cell.readX(), cell.readY() + cell.readHeight(), x, y);
+            showContextMenu(popover, parent, x.get(), y.get());
+            return true;
+        });
+        parent.addController(keys);
+    }
+
+    private void showContextMenu(PopoverMenu popover, Widget parent, double x, double y) {
+        Out<Double> parentX = new Out<>();
+        Out<Double> parentY = new Out<>();
+        if (treeView.translateCoordinates(parent, x, y, parentX, parentY)) {
+            popover.setPointingTo(new Rectangle(parentX.get().intValue(), parentY.get().intValue(), 1, 1));
+            popover.popup();
+        }
     }
 
     static boolean selectPathIfNeeded(TreeSelection selection, TreePath path) {
@@ -200,7 +280,8 @@ public final class LinuxDeviceManagerApp {
 
     private void requestSetEnabled(boolean enabled) {
         Device device = selectedDevice;
-        if (device == null) {
+        if (device == null || actionInFlight || refreshInFlight
+                || (enabled ? !actionService.canEnable(device) : !actionService.canDisable(device))) {
             return;
         }
         if (enabled) {
@@ -211,7 +292,9 @@ public final class LinuxDeviceManagerApp {
         AlertDialog dialog = new AlertDialog("Disable \"" + device.displayName() + "\"?");
         dialog.setDetail(SafetyPolicy.isCritical(device)
                 ? "This is a storage device. Disabling it may destabilize the system or disconnect the root filesystem."
-                : "Disabling this device will unbind its driver. You can enable it again from this menu.");
+                : device.actionKind() == org.ldm.core.model.DeviceActionKind.USB_AUTHORIZATION
+                    ? "This will block the USB device and disconnect all of its functions."
+                    : "This will disconnect the device from its driver until you enable it again.");
         dialog.setButtons(new String[] {"Cancel", "Disable"});
         dialog.setCancelButton(0);
         dialog.setDefaultButton(0);
@@ -228,7 +311,10 @@ public final class LinuxDeviceManagerApp {
     }
 
     private void performAction(Device device, boolean enabled) {
-        status.busy((enabled ? "Enabling " : "Disabling ") + device.displayName() + "...");
+        if (actionInFlight || refreshInFlight || closed) return;
+        detailController.setSuspended(true);
+        StatusController.Operation operation = status.begin(StatusController.Kind.ACTION,
+                (enabled ? "Enabling " : "Disabling ") + device.displayName() + "...");
         actionInFlight = true;
         updateActionState(null);
 
@@ -238,19 +324,28 @@ public final class LinuxDeviceManagerApp {
         }, result -> {
             actionInFlight = false;
             if (result == null) {
+                refreshDevices();
                 status.message("Action failed");
                 showError(null);
                 updateActionState(selectedDevice);
+                detailController.setSuspended(false);
+                operation.close();
                 return;
             }
 
             switch (result.outcome()) {
-                case SUCCESS -> refreshDevices();
+                case SUCCESS -> {
+                    manager.recordAction(device, enabled);
+                    refreshDevices();
+                    status.message("Device " + (enabled ? "enabled." : "disabled."));
+                }
                 case AUTH_CANCELLED -> {
                     status.message("Authentication cancelled.");
                     updateActionState(selectedDevice);
                 }
                 case UNSUPPORTED, FAILED -> {
+                    // A failed postcondition can follow a partial state change. Reload it.
+                    refreshDevices();
                     String message = result.message();
                     if (message == null || message.isBlank()) {
                         message = "Action failed.";
@@ -260,22 +355,36 @@ public final class LinuxDeviceManagerApp {
                     updateActionState(selectedDevice);
                 }
             }
+            detailController.setSuspended(false);
+            operation.close();
         });
     }
 
     private void refreshDevices() {
+        if (refreshInFlight || actionInFlight || closed) return;
+        refreshInFlight = true;
+        StatusController.Operation operation = status.begin(StatusController.Kind.SCAN, "Scanning devices...");
         selectedDevice = null;
         updateActionState(null);
-        detailController.clearSelection();
-        status.busy("Scanning devices...");
+        detailController.invalidate();
+        treeController.populate(List.of());
+        treeStateLabel.setLabel("Scanning devices...");
+        treeStateLabel.setVisible(true);
         ui.runAsync(manager::refresh, groups -> {
+            refreshInFlight = false;
             if (groups == null) {
+                treeStateLabel.setLabel("Could not load devices. Use File → Refresh Devices to retry.");
                 status.message("Failed to load devices");
+                updateActionState(null);
+                operation.close();
                 return;
             }
             treeController.populate(groups);
             treeView.expandAll();
-            status.idle();
+            treeStateLabel.setLabel("No devices found.");
+            treeStateLabel.setVisible(groups.isEmpty());
+            updateActionState(selectedDevice);
+            operation.close();
         });
     }
 

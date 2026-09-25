@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.ldm.core.action.DeviceActionResult.Outcome;
 import org.ldm.core.model.Bus;
 import org.ldm.core.model.Device;
+import org.ldm.core.model.DeviceActionKind;
 import org.ldm.core.model.DeviceCategory;
 import org.ldm.core.model.DeviceState;
 import org.ldm.core.process.CommandResult;
@@ -18,11 +19,13 @@ import org.junit.jupiter.api.Test;
 
 class DeviceActionServiceTest {
 
+    private static final String INSTANCE = "a".repeat(64);
     private static final String HELPER = "/usr/libexec/ldm-helper";
 
     private Device device(String syspath, Optional<String> driver) {
         return new Device(syspath, syspath, "0000:01:00.0", Bus.PCI, "GPU", "10de", "2503",
-                DeviceCategory.DISPLAY, DeviceState.ACTIVE, driver, Map.of());
+                DeviceCategory.DISPLAY, DeviceState.ACTIVE, driver, Map.of(), List.of(), Optional.empty(),
+                DeviceActionKind.DRIVER_BINDING, INSTANCE, true, true);
     }
 
     @Test
@@ -39,13 +42,13 @@ class DeviceActionServiceTest {
     void disableInvokesHelperViaPkexecAndMapsSuccess() {
         FakeCommandRunner runner = new FakeCommandRunner()
                 .stub(new CommandResult(0, "disabled 0000:01:00.0", "", false),
-                        "pkexec", HELPER, "disable-driver", "/sys/devices/x");
+                        "pkexec", HELPER, "disable-driver", "/sys/devices/x", INSTANCE);
         DeviceActionService svc = new DeviceActionService(runner, "pkexec", HELPER);
 
         DeviceActionResult r = svc.setDeviceEnabled(device("/sys/devices/x", Optional.of("nvidia")), false);
 
         assertEquals(Outcome.SUCCESS, r.outcome());
-        assertEquals(List.of("pkexec", HELPER, "disable-driver", "/sys/devices/x"),
+        assertEquals(List.of("pkexec", HELPER, "disable-driver", "/sys/devices/x", INSTANCE),
                 runner.invocations().get(0));
     }
 
@@ -53,7 +56,7 @@ class DeviceActionServiceTest {
     void enableUsesEnableDriverVerb() {
         FakeCommandRunner runner = new FakeCommandRunner()
                 .stub(new CommandResult(0, "enabled 0000:01:00.0", "", false),
-                        "pkexec", HELPER, "enable-driver", "/sys/devices/x");
+                        "pkexec", HELPER, "enable-driver", "/sys/devices/x", INSTANCE);
         DeviceActionService svc = new DeviceActionService(runner, "pkexec", HELPER);
 
         DeviceActionResult r = svc.setDeviceEnabled(device("/sys/devices/x", Optional.empty()), true);
@@ -65,7 +68,7 @@ class DeviceActionServiceTest {
     void dismissedAuthMapsToCancelled() {
         FakeCommandRunner runner = new FakeCommandRunner()
                 .stub(new CommandResult(126, "", "", false),
-                        "pkexec", HELPER, "disable-driver", "/sys/devices/x");
+                        "pkexec", HELPER, "disable-driver", "/sys/devices/x", INSTANCE);
         DeviceActionService svc = new DeviceActionService(runner, "pkexec", HELPER);
 
         assertEquals(Outcome.AUTH_CANCELLED,
@@ -76,7 +79,7 @@ class DeviceActionServiceTest {
     void notAuthorizedMapsToFailed() {
         FakeCommandRunner runner = new FakeCommandRunner()
                 .stub(new CommandResult(127, "", "", false),
-                        "pkexec", HELPER, "disable-driver", "/sys/devices/x");
+                        "pkexec", HELPER, "disable-driver", "/sys/devices/x", INSTANCE);
         DeviceActionService svc = new DeviceActionService(runner, "pkexec", HELPER);
 
         DeviceActionResult r = svc.setDeviceEnabled(device("/sys/devices/x", Optional.of("nvidia")), false);
@@ -88,7 +91,7 @@ class DeviceActionServiceTest {
     void helperErrorSurfacesStderr() {
         FakeCommandRunner runner = new FakeCommandRunner()
                 .stub(new CommandResult(3, "", "no such device: /sys/devices/x", false),
-                        "pkexec", HELPER, "disable-driver", "/sys/devices/x");
+                        "pkexec", HELPER, "disable-driver", "/sys/devices/x", INSTANCE);
         DeviceActionService svc = new DeviceActionService(runner, "pkexec", HELPER);
 
         DeviceActionResult r = svc.setDeviceEnabled(device("/sys/devices/x", Optional.of("nvidia")), false);

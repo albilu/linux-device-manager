@@ -65,7 +65,7 @@
                 <phase>package</phase>
                 <goals><goal>exec</goal></goals>
                 <configuration>
-                  <executable>${project.basedir}/packaging/build-deb.sh</executable>
+                  <executable>${project.basedir}/packaging/build-packages.sh</executable>
                   <environmentVariables>
                     <JAVA_HOME>${java.home}</JAVA_HOME>
                   </environmentVariables>

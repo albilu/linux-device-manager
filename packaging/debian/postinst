@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+# Ensure helper is executable (dpkg should preserve mode, but be safe).
+chmod 0755 /usr/libexec/ldm-helper
+# Polkit monitors its action directories; pkaction has no reload operation.
+# Update icon cache so the app icon appears immediately.
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -q -t -f /usr/share/icons/hicolor >/dev/null 2>&1 || true
+fi
+# Update desktop database.
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database -q /usr/share/applications || true
+fi

@@ -32,13 +32,13 @@ import org.junit.jupiter.api.condition.OS;
 class DetailControllerTest {
 
     @Test
-    void clearSelectionResetsDetailsAndStatus() {
+    void clearSelectionDoesNotFinishAnUnrelatedOperation() {
         assumeTrue(Gtk.initCheck(), "no display available for GTK");
 
         Spinner spinner = new Spinner();
         Label statusLabel = new Label("Working...");
         StatusController status = new StatusController(spinner, statusLabel);
-        status.busy("Working...");
+        var operation = status.begin(StatusController.Kind.SCAN, "Working...");
 
         Label generalLabel = new Label("old general");
         Label advancedLabel = new Label("old advanced");
@@ -50,8 +50,10 @@ class DetailControllerTest {
 
         controller.clearSelection();
 
+        assertTrue(spinner.getSpinning());
+        assertEquals("Working...", statusLabel.getLabel());
+        operation.close();
         assertFalse(spinner.getSpinning());
-        assertEquals("Ready", statusLabel.getLabel());
         assertEquals("Select a device to view details.", generalLabel.getLabel());
         assertEquals("", advancedLabel.getLabel());
         assertEquals("", driverLabel.getLabel());
@@ -59,7 +61,7 @@ class DetailControllerTest {
     }
 
     @Test
-    void showDevicePopulatesAllTabsAndIdlesStatus() {
+    void generalDoesNotLoadHiddenTabs() {
         assumeTrue(Gtk.initCheck(), "no display available for GTK");
 
         Fixture f = new Fixture();
@@ -67,9 +69,10 @@ class DetailControllerTest {
         f.executor.flushCallbacks();
 
         assertEquals("general-GPU", f.generalLabel.getLabel());
-        assertEquals("advanced-GPU", f.advancedLabel.getLabel());
-        assertEquals("driver-GPU", f.driverLabel.getLabel());
-        assertEquals("logs-GPU", f.logsText());
+        assertEquals("", f.advancedLabel.getLabel());
+        assertEquals("", f.driverLabel.getLabel());
+        assertEquals("", f.logsText());
+        assertEquals(0, f.executor.submissions);
         assertFalse(f.spinner.getSpinning());
         assertEquals("Ready", f.statusLabel.getLabel());
     }
@@ -80,11 +83,13 @@ class DetailControllerTest {
 
         Fixture f = new Fixture();
         f.controller.showDevice(device("GPU"));
+        f.controller.showTab(DetailTab.DRIVER);
 
         assertEquals("general-GPU", f.generalLabel.getLabel());
-        assertEquals("Loading...", f.advancedLabel.getLabel());
+        assertEquals("", f.advancedLabel.getLabel());
         assertEquals("Loading...", f.driverLabel.getLabel());
-        assertEquals("Loading...", f.logsText());
+        assertEquals("", f.logsText());
+        assertEquals(1, f.executor.submissions);
         assertTrue(f.spinner.getSpinning());
     }
 
@@ -94,13 +99,66 @@ class DetailControllerTest {
 
         Fixture f = new Fixture();
         f.controller.showDevice(device("GPU"));
+        f.controller.showTab(DetailTab.ADVANCED);
         f.controller.showDevice(device("NIC"));
         f.executor.flushCallbacks();
 
         assertEquals("general-NIC", f.generalLabel.getLabel());
         assertEquals("advanced-NIC", f.advancedLabel.getLabel());
-        assertEquals("driver-NIC", f.driverLabel.getLabel());
-        assertEquals("logs-NIC", f.logsText());
+        assertEquals("", f.driverLabel.getLabel());
+        assertEquals("", f.logsText());
+    }
+
+    @Test
+    void cachedTabsAreReusedUntilInventoryRefresh() {
+        assumeTrue(Gtk.initCheck(), "no display available for GTK");
+        Fixture f = new Fixture();
+        Device device = device("GPU");
+        f.controller.showDevice(device);
+        f.controller.showTab(DetailTab.DRIVER);
+        f.executor.flushCallbacks();
+        assertEquals("driver-GPU", f.driverLabel.getLabel());
+        f.controller.showTab(DetailTab.GENERAL);
+        f.controller.showTab(DetailTab.DRIVER);
+        f.controller.clearSelection();
+        f.controller.showDevice(device);
+        assertEquals(1, f.executor.submissions);
+        assertEquals("driver-GPU", f.driverLabel.getLabel());
+        f.controller.invalidate();
+        f.controller.showDevice(device);
+        assertEquals(2, f.executor.submissions);
+        assertEquals("Loading...", f.driverLabel.getLabel());
+        f.executor.flushCallbacks();
+    }
+
+    @Test
+    void suspendedDetailsCannotDelayAnExplicitAction() throws Exception {
+        assumeTrue(Gtk.initCheck(), "no display available for GTK");
+        var started = new java.util.concurrent.CountDownLatch(1);
+        var interrupted = new java.util.concurrent.CountDownLatch(1);
+        try (UiExecutor executor = new UiExecutor()) {
+            var manager = new DeviceManager(null, null, null, null, Map.of(
+                    DetailTab.GENERAL, d -> "general",
+                    DetailTab.LOGS, d -> {
+                        started.countDown();
+                        try { Thread.sleep(30000); }
+                        catch (InterruptedException e) { interrupted.countDown(); Thread.currentThread().interrupt(); }
+                        return "stale logs";
+                    }));
+            var spinner = new Spinner();
+            var controller = new DetailController(manager, executor, new StatusController(spinner, new Label("")),
+                    new Label(""), new Label(""), new Label(""), new TextView());
+            controller.showDevice(device("GPU"));
+            controller.showTab(DetailTab.LOGS);
+            assertTrue(started.await(2, java.util.concurrent.TimeUnit.SECONDS));
+            controller.setSuspended(true);
+            var action = new java.util.concurrent.CountDownLatch(1);
+            executor.runAsync(() -> { action.countDown(); return true; }, ignored -> { });
+            assertTrue(action.await(1, java.util.concurrent.TimeUnit.SECONDS), "action was stuck behind details");
+            assertTrue(interrupted.await(1, java.util.concurrent.TimeUnit.SECONDS));
+            assertFalse(spinner.getSpinning());
+            controller.clearSelection();
+        }
     }
 
     private Device device(String name) {
@@ -118,7 +176,7 @@ class DetailControllerTest {
     private static final class Fixture {
         final ControllableExecutor executor = new ControllableExecutor();
         final Spinner spinner = new Spinner();
-        final Label statusLabel = new Label("");
+        final Label statusLabel = new Label("Ready");
         final StatusController status = new StatusController(spinner, statusLabel);
         final Label generalLabel = new Label("");
         final Label advancedLabel = new Label("");
@@ -142,10 +200,12 @@ class DetailControllerTest {
     }
 
     private static class ControllableExecutor extends UiExecutor {
+        int submissions;
         private final List<Runnable> pendingCallbacks = new ArrayList<>();
 
         @Override
         public <T> Future<?> runAsync(Supplier<T> work, Consumer<T> onResult) {
+            submissions++;
             T delivered = null;
             try {
                 delivered = work.get();

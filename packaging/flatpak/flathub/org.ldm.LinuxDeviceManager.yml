@@ -1,0 +1,49 @@
+# Flathub submission manifest (source build, offline).
+# Unlike org.ldm.LinuxDeviceManager.yml (which bundles the prebuilt stage),
+# Flathub builds everything from the git source with NO network access.
+# Before submitting, generate the vendored Maven sources and drop them next
+# to this file:
+#
+#   python3 flatpak-maven-generator.py --output maven-sources.json pom.xml
+#   (from https://github.com/flathub/flatpak-maven-generator — run once per
+#   dependency change, then uncomment the maven module below)
+#
+# Status: skeleton — complete FLATHUB.md, generate maven-sources.json,
+# replace __TAG__ with the release tag, then submit to flathub/flathub.
+app-id: org.ldm.LinuxDeviceManager
+runtime: org.gnome.Platform
+runtime-version: '48'
+sdk: org.gnome.Sdk
+command: linux-device-manager
+finish-args:
+  - --share=ipc
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --talk-name=org.freedesktop.Notifications
+  - --own-name=com.example.DeviceManager
+  - --talk-name=org.freedesktop.Flatpak
+modules:
+  # TODO: uncomment once maven-sources.json is generated (see header).
+  # - name: maven-deps
+  #   buildsystem: simple
+  #   sources:
+  #     - type: file
+  #       path: maven-sources.json
+  #   build-commands:
+  #     - mkdir -p /run/build/maven-deps && cp maven-sources.json /run/build/maven-deps/
+  - name: linux-device-manager
+    buildsystem: simple
+    build-options:
+      env:
+        JAVA_HOME: /usr/lib/sdk/openjdk25
+    sources:
+      - type: git
+        url: https://github.com/albilu/linux-device-manager.git
+        tag: __TAG__
+        commit: __COMMIT__
+    build-commands:
+      # TODO: offline Maven build once maven-deps are vendored:
+      #   mvn -o -Dmaven.repo.local=/run/build/maven-repo install -DskipTests
+      #   jlink ... (see packaging/build-packages.sh for the module set)
+      #   ... then the same install -Dm*/sed renames as org.ldm.LinuxDeviceManager.yml
+      - echo "Flathub source build not yet wired: generate maven-sources.json first" && exit 1

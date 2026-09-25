@@ -27,8 +27,8 @@ public final class DeviceTreeController {
 
     /** Clear and repopulate the store; only non-empty categories are present in {@code groups}. */
     public void populate(List<CategoryGroup> groups) {
-        store.clear();
         devicesByPath.clear();
+        store.clear();
         for (CategoryGroup group : groups) {
             TreeIter parent = new TreeIter();
             store.append(parent, null);

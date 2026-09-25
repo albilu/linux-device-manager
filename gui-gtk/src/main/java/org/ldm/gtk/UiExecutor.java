@@ -7,7 +7,8 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.gnome.glib.GLib;
 
-public class UiExecutor {
+public class UiExecutor implements AutoCloseable {
+    private volatile boolean closed;
 
     private final ExecutorService worker = Executors.newSingleThreadExecutor(runnable -> {
         Thread thread = new Thread(runnable, "ldm-worker");
@@ -25,7 +26,12 @@ public class UiExecutor {
                 delivered = null;
             }
             T result = delivered;
-            GLib.idleAddOnce(() -> onResult.accept(result));
+            if (!closed) GLib.idleAddOnce(() -> { if (!closed) onResult.accept(result); });
         });
+    }
+
+    @Override public void close() {
+        closed = true;
+        worker.shutdownNow();
     }
 }

@@ -2,7 +2,7 @@
 <!-- Created with Cambalache 1.0.2 -->
 <interface>
   <!-- interface-name main.ui -->
-  <requires lib="gtk" version="4.0"/>
+  <requires lib="gtk" version="4.14"/>
   <requires lib="gio" version="2.0"/>
   <!-- Device Context Menu (Enable/Disable) -->
   <menu id="device_context_menu">
@@ -49,60 +49,6 @@
       <column type="gchararray"/>
       <column type="gchararray"/>
     </columns>
-    <data>
-      <row>
-        <col id="0">multimedia-player</col>
-        <col id="1">Multimedia</col>
-        <row>
-          <col id="0">audio-card</col>
-          <col id="1">Intel HD Audio Controller</col>
-        </row>
-        <row>
-          <col id="0">camera-web</col>
-          <col id="1">Logitech HD Webcam C270</col>
-        </row>
-      </row>
-      <row>
-        <col id="0">network-wired</col>
-        <col id="1">Network</col>
-        <row>
-          <col id="0">network-wired</col>
-          <col id="1">Realtek PCIe GbE Family Controller</col>
-        </row>
-        <row>
-          <col id="0">network-wireless</col>
-          <col id="1">Intel Wi-Fi 6 AX200</col>
-        </row>
-      </row>
-      <row>
-        <col id="0">drive-harddisk</col>
-        <col id="1">Storage</col>
-        <row>
-          <col id="0">drive-harddisk-solidstate</col>
-          <col id="1">Samsung SSD 970 EVO Plus 1TB</col>
-        </row>
-        <row>
-          <col id="0">drive-harddisk</col>
-          <col id="1">WDC WD20EZAZ-00GGJB0</col>
-        </row>
-      </row>
-      <row>
-        <col id="0">drive-removable-media-usb</col>
-        <col id="1">USB</col>
-        <row>
-          <col id="0">drive-removable-media</col>
-          <col id="1">Linux Foundation 3.0 root hub</col>
-        </row>
-      </row>
-      <row>
-        <col id="0">computer</col>
-        <col id="1">PCI</col>
-        <row>
-          <col id="0">video-display</col>
-          <col id="1">NVIDIA Corporation GA106 [GeForce RTX 3060]</col>
-        </row>
-      </row>
-    </data>
   </object>
   <!-- Main Application Window -->
   <object class="GtkApplicationWindow" id="main_window">
@@ -150,7 +96,7 @@
             </child>
             <child type="tab">
               <object class="GtkLabel">
-                <property name="label">Details</property>
+                <property name="label">General</property>
               </object>
             </child>
             <child>
@@ -225,13 +171,29 @@
         <property name="position">250</property>
         <!-- Left Pane: Tree View -->
         <property name="start-child">
+          <object class="GtkOverlay" id="tree_overlay">
+            <child>
+              <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <child>
+                  <object class="GtkSearchEntry" id="device_search_entry">
+                    <property name="placeholder-text">Find a device</property>
+                    <property name="margin-start">8</property>
+                    <property name="margin-end">8</property>
+                    <property name="margin-top">8</property>
+                    <property name="margin-bottom">8</property>
+                  </object>
+                </child>
+                <child>
           <object class="GtkScrolledWindow" id="tree_scroll">
+            <property name="vexpand">True</property>
             <property name="hscrollbar-policy">automatic</property>
             <property name="min-content-width">200</property>
             <property name="width-request">200</property>
             <child>
               <object class="GtkTreeView" id="device_tree_view">
                 <property name="headers-visible">True</property>
+                <property name="search-column">1</property>
                 <property name="model">device_store</property>
                 <child>
                   <object class="GtkTreeViewColumn" id="category_column">
@@ -252,6 +214,20 @@
                     </child>
                   </object>
                 </child>
+              </object>
+            </child>
+          </object>
+                </child>
+              </object>
+            </child>
+            <child type="overlay">
+              <object class="GtkLabel" id="tree_state_label">
+                <property name="label">Scanning devices...</property>
+                <property name="wrap">True</property>
+                <property name="halign">center</property>
+                <property name="valign">center</property>
+                <property name="margin-start">16</property>
+                <property name="margin-end">16</property>
               </object>
             </child>
           </object>

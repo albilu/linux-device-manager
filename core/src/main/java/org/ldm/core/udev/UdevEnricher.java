@@ -49,7 +49,8 @@ public final class UdevEnricher {
      * {@code vendor:product} ids.
      */
     public String displayName(SysfsDevice device, Map<String, String> props) {
-        String model = firstNonBlank(props.get("ID_MODEL_FROM_DATABASE"), props.get("ID_MODEL"));
+        String model = firstNonBlank(props.get("ID_MODEL_FROM_DATABASE"), props.get("ID_MODEL"),
+                device.attributes().get("model"), device.attributes().get("product"), device.attributes().get("name"));
         String vendor = firstNonBlank(props.get("ID_VENDOR_FROM_DATABASE"), props.get("ID_VENDOR"));
         if (model != null && vendor != null) {
             return vendor + " " + model;
@@ -57,7 +58,9 @@ public final class UdevEnricher {
         if (model != null) {
             return model;
         }
-        return device.vendorId() + ":" + device.productId();
+        if (!device.vendorId().isBlank() || !device.productId().isBlank())
+            return device.vendorId() + ":" + device.productId();
+        return device.busInfo();
     }
 
     private static String firstNonBlank(String... values) {

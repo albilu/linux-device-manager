@@ -5,133 +5,110 @@
 set -eu
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
 
-DEB="$(ls packaging/dist/linux-device-manager_*.deb 2>/dev/null | head -1 || true)"
-if [ -z "$DEB" ]; then
-    echo "FAIL: no .deb found in packaging/dist/"
-    echo "Run packaging/build-deb.sh first."
-    exit 1
+fail() { echo "FAIL: $*" >&2; exit 1; }
+if [ "$#" -gt 1 ]; then fail "usage: verify-deb.sh [package.deb]"; fi
+if [ "$#" -eq 1 ]; then
+    DEB=$(readlink -f -- "$1") || fail "invalid package path: $1"
+else
+    cd "$ROOT"
+    # Canonical artifacts land in packaging/; packaging/dist keeps older builds.
+    matches=""
+    for candidate in packaging/linux-device-manager_*.deb packaging/dist/linux-device-manager_*.deb; do
+        [ -f "$candidate" ] || continue
+        matches="$matches $candidate"
+    done
+    # shellcheck disable=SC2086
+    set -- $matches
+    [ "$#" -eq 1 ] || fail "specify one .deb explicitly (none or multiple found in packaging/ and packaging/dist)"
+    DEB="$1"
 fi
-
+[ -f "$DEB" ] || fail "no package found: $DEB"
 echo "=== Verifying: $DEB ==="
 
-# 1. Structural integrity
-echo "--- dpkg-deb --contents ---"
-dpkg-deb --contents "$DEB" >/dev/null
-echo "OK: archive integrity"
+# Check exact control fields, not strings anywhere in the human-readable archive summary.
+[ "$(dpkg-deb -f "$DEB" Package)" = linux-device-manager ] || fail "incorrect package name"
+[ "$(dpkg-deb -f "$DEB" Architecture)" = amd64 ] || fail "incorrect package architecture"
+DEPENDS=$(dpkg-deb -f "$DEB" Depends)
+printf '%s\n' "$DEPENDS" | grep -Eq '(^|,)[[:space:]]*libgtk-4-1 \(>= 4\.14\.5\)([[:space:]]*,|[[:space:]]*$)' \
+    || fail "missing tested GTK 4.14.5 minimum for device action dialogs"
+for dependency in policykit-1 udev; do
+    printf '%s\n' "$DEPENDS" | grep -Eq "(^|,)[[:space:]]*$dependency([[:space:]]*\\([^)]*\\))?[[:space:]]*(,|$)" \
+        || fail "missing required dependency: $dependency"
+done
 
-# 2. Control metadata
-echo "--- Control fields ---"
-INFO="$(dpkg-deb --info "$DEB")"
-echo "$INFO" | grep -q 'Package: linux-device-manager' && echo "OK: package name"
-echo "$INFO" | grep -q 'Architecture: amd64' && echo "OK: architecture"
-echo "$INFO" | grep -q 'Depends:.*libgtk-4-1' && echo "OK: gtk4 dependency"
-echo "$INFO" | grep -q 'Depends:.*policykit-1' && echo "OK: polkit dependency"
-
-# 3. Required files present
-echo "--- Required files ---"
-CONTENTS="$(dpkg-deb --contents "$DEB")"
+echo "OK: required control fields"
+CONTENTS=$(dpkg-deb --contents "$DEB")
+# Require exact, regular, root-owned files with ordinary read/execute permissions.
 check_file() {
-    if echo "$CONTENTS" | grep -q "$1"; then
-        echo "OK: $1"
-    else
-        echo "MISSING: $1"
-        return 1
-    fi
+    file="$1"
+    mode="$2"
+    printf '%s\n' "$CONTENTS" | awk -v path="./$file" -v expected="$mode" '
+        $NF == path && $1 == expected && $2 == "root/root" {found=1}
+        END {exit !found}' || fail "missing or unsafe required file: $file ($mode, root/root)"
 }
-check_file 'opt/linux-device-manager/runtime/bin/java'
-check_file 'usr/bin/linux-device-manager'
-check_file 'usr/libexec/ldm-helper'
-check_file 'usr/share/polkit-1/actions/org.ldm.policy'
-check_file 'usr/share/applications/linux-device-manager.desktop'
-check_file 'usr/share/icons/hicolor/scalable/apps/linux-device-manager.svg'
+check_file opt/linux-device-manager/runtime/bin/java -rwxr-xr-x
+check_file usr/bin/linux-device-manager -rwxr-xr-x
+check_file usr/libexec/ldm-helper -rwxr-xr-x
+check_file usr/share/polkit-1/actions/org.ldm.policy -rw-r--r--
+check_file usr/share/applications/linux-device-manager.desktop -rw-r--r--
+check_file usr/share/icons/hicolor/scalable/apps/linux-device-manager.svg -rw-r--r--
+check_file opt/linux-device-manager/runtime/lib/modules -rw-r--r--
 
-# 4. Helper is executable in the archive
-echo "--- Helper permissions ---"
-if echo "$CONTENTS" | grep 'usr/libexec/ldm-helper' | grep -q '^-rwx'; then
-    echo "OK: helper is executable"
-else
-    echo "WARN: helper may not be executable in archive"
-fi
+for artifact in ldm-core ldm-gui-gtk gtk glib gdkpixbuf harfbuzz pango jspecify cairo; do
+    count=$(printf '%s\n' "$CONTENTS" | awk -v prefix="./opt/linux-device-manager/lib/$artifact-" '
+        index($NF,prefix)==1 && $NF ~ /\.jar$/ {
+            count++
+            if ($1 != "-rw-r--r--" || $2 != "root/root") unsafe=1
+        }
+        END {print unsafe ? -1 : count+0}')
+    [ "$count" -eq 1 ] || fail "expected exactly one runtime JAR for $artifact"
+done
 
-# 5. Launcher is executable
-echo "--- Launcher permissions ---"
-if echo "$CONTENTS" | grep 'usr/bin/linux-device-manager' | grep -q '^-rwx'; then
-    echo "OK: launcher is executable"
-else
-    echo "WARN: launcher may not be executable in archive"
+CTRL=$(dpkg-deb --ctrl-tarfile "$DEB" | tar -tv)
+for script in postinst postrm; do
+    printf '%s\n' "$CTRL" | awk -v name="./$script" '
+        $NF == name && $1 == "-rwxr-xr-x" && $2 == "root/root" {found=1}
+        END {exit !found}' || fail "missing or unsafe control script: $script"
+done
+if printf '%s\n' "$CONTENTS" | grep -qE 'junit|opentest|apiguardian|cp\.txt'; then
+    fail "test dependency or stray classpath file in archive"
 fi
-
-# 6. JAR files present
-echo "--- JAR files ---"
-JAR_COUNT=$(echo "$CONTENTS" | grep -c '\.jar$')
-if [ "$JAR_COUNT" -ge 3 ]; then
-    echo "OK: $JAR_COUNT JAR files (ldm-core + ldm-gui-gtk + java-gi deps + jrt-fs)"
-else
-    echo "WARN: only $JAR_COUNT JAR files found (expected >= 3)"
-fi
-
-# 7. postinst/postrm present and executable (live in the control archive, not data)
-echo "--- Scripts ---"
-CTRL="$(dpkg-deb --ctrl-tarfile "$DEB" | tar -tv 2>/dev/null)"
-check_ctrl() {
-    if echo "$CTRL" | grep -q "$1"; then
-        echo "OK: $1"
-    else
-        echo "MISSING: $1"
-        return 1
-    fi
-}
-check_ctrl 'postinst'
-check_ctrl 'postrm'
-if echo "$CTRL" | grep 'postinst' | grep -q '^-rwx'; then
-    echo "OK: postinst is executable"
-else
-    echo "WARN: postinst may not be executable"
-fi
-if echo "$CTRL" | grep 'postrm' | grep -q '^-rwx'; then
-    echo "OK: postrm is executable"
-else
-    echo "WARN: postrm may not be executable"
-fi
-
-# 8. No test JARs leaked
-echo "--- Test JAR leak check ---"
-if echo "$CONTENTS" | grep -qE 'junit|opentest|apiguardian'; then
-    echo "FAIL: test JARs found in package"
-    exit 1
-else
-    echo "OK: no test JARs"
-fi
-
-# 9. No stray cp.txt
-echo "--- Stray file check ---"
-if echo "$CONTENTS" | grep -q 'cp\.txt'; then
-    echo "FAIL: cp.txt leaked into package"
-    exit 1
-else
-    echo "OK: no cp.txt leak"
-fi
-
-echo ""
+echo "OK: required files, runtime JARs and permissions"
 echo "=== Verification complete ==="
 
 # Optional install + smoke test
 if [ "${DPKG_INSTALL:-0}" = "1" ] && [ "$(id -u)" = "0" ]; then
+    if dpkg-query -W -f='${db:Status-Status}' linux-device-manager 2>/dev/null | grep -qx installed; then
+        echo "FAIL: use a disposable environment without an existing installation"
+        exit 1
+    fi
+    SMOKE_LOG=$(mktemp /tmp/ldm-smoke.XXXXXX)
+    cleanup_install() {
+        smoke_exit=$?
+        trap - EXIT HUP INT TERM
+        echo "=== Uninstalling test package ==="
+        dpkg -r linux-device-manager || smoke_exit=1
+        rm -f "$SMOKE_LOG"
+        exit "$smoke_exit"
+    }
+    trap cleanup_install EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' HUP TERM
     echo ""
     echo "=== Installing package (DPKG_INSTALL=1) ==="
     dpkg -i "$DEB"
     echo "=== Smoke test (timeout 10s) ==="
-    timeout 10 xvfb-run -a /usr/bin/linux-device-manager > /tmp/ldm-smoke.log 2>&1
-    EXIT_CODE=$?
-    grep -vi "libEGL\|DRI3\|Picked up" /tmp/ldm-smoke.log || true
-    rm -f /tmp/ldm-smoke.log
+    if timeout 10 xvfb-run -a /usr/bin/linux-device-manager > "$SMOKE_LOG" 2>&1; then
+        EXIT_CODE=0
+    else
+        EXIT_CODE=$?
+    fi
+    grep -vi "libEGL\|DRI3\|Picked up" "$SMOKE_LOG" || true
     if [ "$EXIT_CODE" = "124" ]; then
         echo "OK: app launched and ran until timeout (exit 124)"
     else
-        echo "WARN: unexpected exit code $EXIT_CODE (124 = timeout = OK)"
+        echo "FAIL: unexpected exit code $EXIT_CODE (124 = timeout = OK)"
+        exit 1
     fi
-    echo "=== Uninstalling ==="
-    dpkg -r linux-device-manager
 fi

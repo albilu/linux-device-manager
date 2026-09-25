@@ -30,6 +30,7 @@ public final class FakeSysfs {
         write(dir.resolve("class"), classCode);
         write(dir.resolve("vendor"), vendor);
         write(dir.resolve("device"), device);
+        busLinks(dir, "pci");
         if (driver != null) {
             linkDriver(dir, driver);
         }
@@ -47,20 +48,47 @@ public final class FakeSysfs {
         write(dir.resolve("idProduct"), idProduct);
         write(dir.resolve("bDeviceClass"), "00");
         write(dir.resolve("authorized"), authorized);
-        Path iface = root.resolve("bus/usb/devices").resolve(name + ":1.0");
+        busLinks(dir, "usb");
+        linkDriver(dir, "usb", "usbcore");
+        Path iface = dir.resolve(name + ":1.0");
         write(iface.resolve("bInterfaceClass"), ifaceClass);
+        write(iface.resolve("bInterfaceSubClass"), "00");
+        write(iface.resolve("bInterfaceProtocol"), "00");
         if (driver != null) {
-            linkDriver(dir, driver);
+            linkDriver(iface, driver);
         }
         return dir;
     }
 
     private void linkDriver(Path deviceDir, String driver) {
+        linkDriver(deviceDir, driver, driver.replace('-', '_'));
+    }
+
+    public void linkDriver(Path deviceDir, String driver, String module) {
         try {
             Files.createDirectories(deviceDir);
-            Path target = root.resolve("bus/drivers").resolve(driver);
+            String bus = deviceDir.startsWith(root.resolve("bus/usb")) ? "usb" : "pci";
+            Path target = root.resolve("bus").resolve(bus).resolve("drivers").resolve(driver);
             Files.createDirectories(target);
+            Files.writeString(target.resolve("unbind"), "");
+            Files.writeString(target.resolve("bind"), "");
+            if (module != null && !Files.exists(target.resolve("module"))) {
+                Path moduleDir = root.resolve("module").resolve(module);
+                Files.createDirectories(moduleDir);
+                Files.createSymbolicLink(target.resolve("module"), moduleDir);
+            }
             Files.createSymbolicLink(deviceDir.resolve("driver"), target);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private void busLinks(Path device, String bus) {
+        try {
+            Path busPath = root.resolve("bus").resolve(bus);
+            Files.createDirectories(busPath);
+            Files.writeString(busPath.resolve("drivers_probe"), "");
+            Files.createSymbolicLink(device.resolve("subsystem"), busPath);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

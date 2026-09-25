@@ -20,11 +20,12 @@ public enum DeviceCategory {
     INPUT("Input devices", "input-keyboard"),
     PRINTER("Printers", "printer"),
     COMMUNICATION("Communication and modems", "modem"),
-    MEMORY("Memory controllers", "media-flash"),
+    MEMORY("Memory devices and controllers", "media-flash"),
     BRIDGE("Bridges", "preferences-system"),
     SERIAL_BUS("Serial bus controllers", "preferences-system"),
     ENCRYPTION("Encryption controllers", "security-high"),
     SYSTEM("System devices", "computer"),
+    PCI("PCI devices", "computer"),
     OTHER("Other devices", "application-x-executable");
 
     private final String displayName;

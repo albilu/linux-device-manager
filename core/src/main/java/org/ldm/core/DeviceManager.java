@@ -14,6 +14,9 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.HashMap;
+import org.ldm.core.model.Bus;
 
 /**
  * Core facade: enumerates, enriches, categorizes, groups, and loads per-tab
@@ -26,6 +29,8 @@ public final class DeviceManager {
     private final Categorizer categorizer;
     private final StateResolver stateResolver;
     private final Map<DetailTab, DetailProvider> detailProviders;
+    private record Classification(String instanceId, DeviceCategory category) { }
+    private final Map<String, Classification> usbCategories = new HashMap<>();
 
     public DeviceManager(SysfsScanner scanner, UdevEnricher enricher,
             Categorizer categorizer, StateResolver stateResolver,
@@ -43,8 +48,16 @@ public final class DeviceManager {
      */
     public List<CategoryGroup> refresh() {
         Map<DeviceCategory, List<Device>> byCategory = new EnumMap<>(DeviceCategory.class);
-        for (SysfsDevice raw : scanner.scan()) {
-            Map<String, String> props = enricher.properties(raw);
+        List<SysfsDevice> scanned = scanner.scan();
+        stateResolver.retainDevices(scanned);
+        var present = scanned.stream().map(SysfsDevice::syspath).collect(java.util.stream.Collectors.toSet());
+        usbCategories.keySet().retainAll(present);
+        for (SysfsDevice raw : scanned) {
+            if (Thread.currentThread().isInterrupted()) throw new java.util.concurrent.CancellationException();
+            Map<String, String> props = new LinkedHashMap<>(raw.attributes());
+            props.putAll(enricher.properties(raw));
+            props.putIfAbsent("BUSNUM", raw.attributes().getOrDefault("busnum", ""));
+            props.putIfAbsent("DEVNUM", raw.attributes().getOrDefault("devnum", ""));
             Device device = new Device(
                     raw.syspath(),
                     raw.syspath(),
@@ -53,10 +66,11 @@ public final class DeviceManager {
                     enricher.displayName(raw, props),
                     raw.vendorId(),
                     raw.productId(),
-                    categorizer.categorize(raw),
+                    category(raw),
                     stateResolver.resolve(raw),
                     raw.driver(),
-                    props);
+                    props, raw.driverBindings(), raw.authorized(), raw.actionKind(), raw.instanceId(),
+                    raw.enableSupported(), raw.disableSupported());
             byCategory.computeIfAbsent(device.category(), k -> new ArrayList<>()).add(device);
         }
         List<CategoryGroup> groups = new ArrayList<>();
@@ -67,6 +81,21 @@ public final class DeviceManager {
             }
         }
         return groups;
+    }
+
+    private DeviceCategory category(SysfsDevice raw) {
+        DeviceCategory category = categorizer.categorize(raw);
+        if (raw.bus() != Bus.USB || raw.instanceId().isEmpty()) return category;
+        Classification previous = usbCategories.get(raw.syspath());
+        if (raw.authorized().filter(a -> !a).isPresent() && previous != null
+                && previous.instanceId().equals(raw.instanceId())) return previous.category();
+        usbCategories.put(raw.syspath(), new Classification(raw.instanceId(), category));
+        return category;
+    }
+
+    /** Remember verified driver unbinds for this application session; USB has a kernel flag. */
+    public void recordAction(Device device, boolean enabled) {
+        stateResolver.recordAction(device, enabled);
     }
 
     /**

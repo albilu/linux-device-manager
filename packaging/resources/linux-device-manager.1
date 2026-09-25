@@ -1,0 +1,32 @@
+.TH LINUX-DEVICE-MANAGER 1 "2026" "Linux Device Manager" "User Commands"
+.SH NAME
+linux-device-manager \- view and manage hardware devices on Linux
+.SH SYNOPSIS
+.B linux-device-manager
+.RI [ options ]
+.SH DESCRIPTION
+Linux Device Manager is a GTK4 application that enumerates devices from
+sysfs/udev and displays them in a category tree with detail tabs (general,
+advanced, driver, logs). Supported devices can be enabled or disabled through
+a privileged helper governed by polkit; authentication may be requested.
+.PP
+The application bundles its own Java runtime under
+.I /opt/linux-device-manager/runtime
+and prefers it over the system Java.
+.SH FILES
+.TP
+.I /opt/linux-device-manager/
+Application payload: Java libraries and the bundled runtime.
+.TP
+.I /usr/libexec/ldm-helper
+Privileged device helper (executed via polkit).
+.TP
+.I /usr/share/polkit-1/actions/org.ldm.policy
+Polkit policy governing device enable/disable actions.
+.SH "SEE ALSO"
+.BR lspci (8),
+.BR lsusb (8),
+.BR modinfo (8),
+.BR udevadm (8)
+.SH AUTHOR
+Linux Device Manager contributors (https://github.com/albilu/linux-device-manager)

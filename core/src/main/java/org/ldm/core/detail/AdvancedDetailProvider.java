@@ -25,6 +25,12 @@ public final class AdvancedDetailProvider implements DetailProvider {
 
     @Override
     public String load(Device device) {
+        if (device.bus() == org.ldm.core.model.Bus.OTHER) {
+            return "Device path: " + device.syspath() + "\n" + device.properties().entrySet().stream()
+                    .sorted(java.util.Map.Entry.comparingByKey())
+                    .map(e -> e.getKey() + ": " + e.getValue())
+                    .collect(java.util.stream.Collectors.joining("\n"));
+        }
         CommandResult r = runCommand(device);
         if (r == null) {
             return "No advanced details available for this device.";

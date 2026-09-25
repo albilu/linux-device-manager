@@ -1,0 +1,11 @@
+# Docker build context: only the source tree is needed.
+target/
+.git/
+packaging/dist/
+packaging/*.deb
+packaging/*.rpm
+packaging/*.pkg.tar.zst
+packaging/*.AppImage
+packaging/stage*/
+packaging/appimage/*.AppDir
+.flatpak-builder/

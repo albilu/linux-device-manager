@@ -23,7 +23,7 @@ class MainUiSmokeTest {
                 "main_window", "device_tree_view", "device_store",
                 "general_info_label", "advanced_info_label", "driver_info_label",
                 "logs_text_view", "status_spinner", "status_label", "device_context_menu",
-                "window_menu", "main_menu_bar", "tree_scroll"}) {
+                "window_menu", "main_menu_bar", "tree_scroll", "device_search_entry", "details_notebook"}) {
             assertNotNull(builder.getObject(id), "unresolved object id: " + id);
         }
         assertNotNull(LinuxDeviceManagerApp.class.getResource("/linux-device-manager.svg"),
