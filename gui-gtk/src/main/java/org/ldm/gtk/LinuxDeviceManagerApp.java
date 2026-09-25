@@ -16,6 +16,8 @@ import org.ldm.core.process.ToolLocator;
 import org.ldm.core.scan.SysfsScanner;
 import org.ldm.core.state.StateResolver;
 import org.ldm.core.udev.UdevEnricher;
+import org.ldm.core.util.AppLog;
+import org.ldm.core.util.LdmPaths;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
@@ -60,6 +62,8 @@ import org.javagi.base.Out;
  */
 public final class LinuxDeviceManagerApp {
 
+    private static final String APP_VERSION = "0.2.0";
+
     private final Application app;
     private final DeviceManager manager;
     private final DeviceActionService actionService;
@@ -84,6 +88,8 @@ public final class LinuxDeviceManagerApp {
     public LinuxDeviceManagerApp() {
         this(buildManager(), new DeviceActionService(new ProcessCommandRunner(),
                 new ToolLocator(null).locate("pkexec"), "/usr/libexec/ldm-helper"), new UiExecutor());
+        AppLog.init(LdmPaths.stateDirectory().resolve("linux-device-manager.log"));
+        AppLog.info("Linux Device Manager " + APP_VERSION + " starting");
     }
 
     LinuxDeviceManagerApp(DeviceManager manager, DeviceActionService actionService, UiExecutor ui) {
@@ -93,6 +99,7 @@ public final class LinuxDeviceManagerApp {
         this.actionService = actionService;
         this.ui = ui;
         app.onShutdown(() -> {
+            AppLog.info("Shutting down");
             closed = true;
             if (detailController != null) detailController.clearSelection();
             ui.close();
@@ -415,7 +422,7 @@ public final class LinuxDeviceManagerApp {
         dialog.setTransientFor(window);
         dialog.setModal(true);
         dialog.setProgramName("Linux Device Manager");
-        dialog.setVersion("0.2.0");
+        dialog.setVersion(APP_VERSION);
         dialog.setComments("View and manage hardware devices on Linux.");
         dialog.setAuthors(new String[] {"Linux Device Manager contributors"});
         Texture logo = loadAboutLogo();

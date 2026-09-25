@@ -6,6 +6,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.gnome.glib.GLib;
+import org.ldm.core.util.AppLog;
 
 public class UiExecutor implements AutoCloseable {
     private volatile boolean closed;
@@ -22,7 +23,7 @@ public class UiExecutor implements AutoCloseable {
             try {
                 delivered = work.get();
             } catch (Throwable throwable) {
-                throwable.printStackTrace();
+                AppLog.error("Background task failed", throwable);
                 delivered = null;
             }
             T result = delivered;
