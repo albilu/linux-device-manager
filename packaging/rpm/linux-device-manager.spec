@@ -38,6 +38,9 @@ tooling are required from the system.
 %install
 mkdir -p %{buildroot}
 cp -a %{stage}/. %{buildroot}/
+# hicolor/index.theme is owned by hicolor-icon-theme (same conflict as deb);
+# the installing system's index declares the standard size dirs.
+rm -f %{buildroot}/usr/share/icons/hicolor/index.theme
 
 %files
 %defattr(-,root,root,-)
@@ -51,7 +54,6 @@ cp -a %{stage}/. %{buildroot}/
 /usr/share/man/man1/linux-device-manager.1
 /usr/share/icons/hicolor/*/apps/linux-device-manager.svg
 /usr/share/icons/hicolor/*x*/apps/linux-device-manager.png
-/usr/share/icons/hicolor/index.theme
 %doc /usr/share/doc/linux-device-manager/copyright
 %license /usr/share/licenses/linux-device-manager/copyright
 

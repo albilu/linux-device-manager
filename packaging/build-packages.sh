@@ -127,6 +127,11 @@ build_deb() {
     local debroot="$ROOT/packaging/stage-deb"
     rm -rf "$debroot"
     cp -r "$STAGE" "$debroot"
+    # /usr/share/icons/hicolor/index.theme is owned by hicolor-icon-theme;
+    # shipping our own copy makes the .deb uninstallable (dpkg conflict).
+    # The hicolor theme already declares the standard size dirs, so our
+    # icons resolve without it.
+    rm -f "$debroot/usr/share/icons/hicolor/index.theme"
     mkdir -p "$debroot/DEBIAN"
     cp packaging/debian/control "$debroot/DEBIAN/control"
     cp packaging/debian/postinst "$debroot/DEBIAN/postinst"
@@ -164,6 +169,9 @@ build_arch() {
     rm -rf "$archroot"
     mkdir -p "$archroot/pkg"
     cp -a "$STAGE/." "$archroot/pkg/"
+    # Same hicolor-icon-theme ownership conflict as the .deb (pacman file
+    # conflict); the installing system's index.theme covers our icons.
+    rm -f "$archroot/pkg/usr/share/icons/hicolor/index.theme"
     chmod 755 "$archroot/pkg/usr/bin/linux-device-manager" "$archroot/pkg/usr/libexec/ldm-helper"
 
     local size
