@@ -3,6 +3,7 @@ package org.ldm.core.action;
 import org.ldm.core.model.Device;
 import org.ldm.core.process.CommandResult;
 import org.ldm.core.process.CommandRunner;
+import org.ldm.core.util.AppLog;
 import java.time.Duration;
 import java.util.List;
 
@@ -55,20 +56,39 @@ public final class DeviceActionService {
     public DeviceActionResult setDeviceEnabled(Device device, boolean enabled) {
         String syspath = device.syspath();
         if (syspath == null || !syspath.startsWith("/sys/") || syspath.contains("..")) {
+            AppLog.warn("Refusing device action: invalid path " + syspath);
             return DeviceActionResult.unsupported("Refusing to act on an invalid device path.");
         }
         if (enabled ? !canEnable(device) : !canDisable(device)) {
+            AppLog.warn("Refusing device action: unsupported state for " + syspath);
             return DeviceActionResult.unsupported("This operation is not supported in the device's current state.");
         }
         String verb = (enabled ? "enable-" : "disable-")
                 + (device.actionKind() == org.ldm.core.model.DeviceActionKind.USB_AUTHORIZATION ? "usb" : "driver");
+        AppLog.info("Action " + verb + " on " + syspath + " (instance " + device.instanceId() + ")");
         CommandResult r = runner.run(TIMEOUT, List.of(pkexec, helper, verb, syspath, device.instanceId()));
-        if (r.timedOut()) return DeviceActionResult.failed("The device operation timed out. Refresh to check its current state.");
+        if (r.timedOut()) {
+            AppLog.error("Action " + verb + " timed out on " + syspath);
+            return DeviceActionResult.failed("The device operation timed out. Refresh to check its current state.");
+        }
         return switch (r.exitCode()) {
-            case 0 -> DeviceActionResult.success();
-            case 126 -> DeviceActionResult.authCancelled();
-            case 127 -> DeviceActionResult.failed("Not authorized to perform this action.");
-            default -> DeviceActionResult.failed(describeFailure(r));
+            case 0 -> {
+                AppLog.info("Action " + verb + " succeeded on " + syspath);
+                yield DeviceActionResult.success();
+            }
+            case 126 -> {
+                AppLog.info("Action " + verb + " cancelled (authorization) on " + syspath);
+                yield DeviceActionResult.authCancelled();
+            }
+            case 127 -> {
+                AppLog.error("Action " + verb + " not authorized on " + syspath);
+                yield DeviceActionResult.failed("Not authorized to perform this action.");
+            }
+            default -> {
+                String failure = describeFailure(r);
+                AppLog.error("Action " + verb + " failed on " + syspath + ": " + failure);
+                yield DeviceActionResult.failed(failure);
+            }
         };
     }
 
