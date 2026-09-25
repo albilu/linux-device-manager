@@ -91,7 +91,10 @@ for format in deb rpm arch; do
     test -s "$root/usr/share/doc/linux-device-manager/copyright"
     test -s "$root/usr/share/icons/hicolor/scalable/apps/linux-device-manager.svg"
     test -s "$root/usr/share/icons/hicolor/64x64/apps/linux-device-manager.png"
-    test -s "$root/usr/share/icons/hicolor/index.theme"
+    # hicolor/index.theme is owned by hicolor-icon-theme and must NOT be
+    # shipped (dpkg/pacman file conflict); the system theme's index declares
+    # the standard size dirs our icons live in.
+    test ! -e "$root/usr/share/icons/hicolor/index.theme"
     for artifact in ldm-core ldm-gui-gtk gtk glib gdkpixbuf harfbuzz pango jspecify cairo; do
         count=$(find "$root/opt/linux-device-manager/lib" -maxdepth 1 -name "$artifact-*.jar" | wc -l)
         [[ "$count" -eq 1 ]] || { echo "expected exactly one runtime JAR for $artifact in $format" >&2; exit 1; }
