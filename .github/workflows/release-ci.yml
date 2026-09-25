@@ -59,11 +59,26 @@ jobs:
                   flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
                   ./packaging/flatpak/build-flatpak.sh "$VERSION"
 
+            - name: Assert all release artifacts present
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
+              run: |
+                  ls -l packaging/dist/
+                  for artifact in \
+                      "packaging/dist/linux-device-manager_${VERSION}-1_amd64.deb" \
+                      "packaging/dist/linux-device-manager-${VERSION}-1.x86_64.rpm" \
+                      "packaging/dist/linux-device-manager-${VERSION}-1-x86_64.pkg.tar.zst" \
+                      "packaging/dist/LinuxDeviceManager-${VERSION}-x86_64.AppImage" \
+                      "packaging/dist/org.ldm.LinuxDeviceManager.flatpak"; do
+                      test -s "$artifact" || { echo "MISSING artifact: $artifact" >&2; exit 1; }
+                  done
+
             - name: Create release and attach packages
               uses: softprops/action-gh-release@v2
               with:
                   tag_name: ${{ github.ref_name }}
                   name: ${{ github.ref_name }}
+                  fail_on_unmatched_files: true
                   body: |
                       Packages for ${{ github.ref_name }}:
 
