@@ -2,7 +2,7 @@
 
 A Windows Device Manager-like graphical tool for Linux. Provides a clean, category-based interface to view, inspect, and manage hardware devices via sysfs/udev.
 
-![Screenshot](image.png)
+![Screenshot](docs/wili/images/screenshot.png)
 
 ## Features
 
