@@ -49,7 +49,7 @@ cp -a %{stage}/. %{buildroot}/
 /usr/share/applications/linux-device-manager.desktop
 /usr/share/metainfo/org.ldm.LinuxDeviceManager.metainfo.xml
 /usr/share/man/man1/linux-device-manager.1
-/usr/share/icons/hicolor/scalable/apps/linux-device-manager.svg
+/usr/share/icons/hicolor/*/apps/linux-device-manager.svg
 /usr/share/icons/hicolor/*x*/apps/linux-device-manager.png
 /usr/share/icons/hicolor/index.theme
 %doc /usr/share/doc/linux-device-manager/copyright
