@@ -3,6 +3,7 @@
 # payload as deb/rpm/arch. GTK comes from the GNOME runtime — never bundle it.
 # Build: packaging/flatpak/build-flatpak.sh [VERSION]
 app-id: org.ldm.LinuxDeviceManager
+branch: stable
 runtime: org.gnome.Platform
 runtime-version: '48'
 sdk: org.gnome.Sdk
