@@ -1,18 +1,39 @@
 #!/bin/sh
 # AppRun for the Linux Device Manager AppImage.
 # The AppDir mirrors packaging/stage, so paths resolve relative to APPDIR.
-# GTK4 comes from the host system (same requirement as the .deb).
+# GTK and its dependencies are private to this AppImage. Their relative
+# RUNPATHs avoid leaking LD_LIBRARY_PATH into host hardware utilities.
 set -eu
 APPDIR="$(dirname "$(readlink -f "$0")")"
 APP_HOME="$APPDIR/opt/linux-device-manager"
-if [ -x "$APP_HOME/runtime/bin/java" ]; then
-    exec "$APP_HOME/runtime/bin/java" \
-        --enable-native-access=ALL-UNNAMED \
-        -cp "$APP_HOME/lib/*" \
-        org.ldm.gtk.LinuxDeviceManagerApp "$@"
-else
-    exec java \
-        --enable-native-access=ALL-UNNAMED \
-        -cp "$APP_HOME/lib/*" \
-        org.ldm.gtk.LinuxDeviceManagerApp "$@"
-fi
+export XDG_DATA_DIRS="$APPDIR/usr/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+
+# A FUSE mount/extracted AppDir can move and can be read-only. Generate the
+# pixbuf cache with its actual paths in a private directory for this run.
+cache_dir=$(mktemp -d "${TMPDIR:-/tmp}/ldm-appimage.XXXXXXXX")
+app_pid=
+cleanup() {
+    if [ -n "$app_pid" ]; then
+        kill "$app_pid" 2>/dev/null || true
+        wait "$app_pid" 2>/dev/null || true
+    fi
+    rm -rf "$cache_dir"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM HUP
+export GDK_PIXBUF_MODULEDIR="$APPDIR/usr/lib/ldm/gdk-pixbuf-loaders"
+export GDK_PIXBUF_MODULE_FILE="$cache_dir/loaders.cache"
+"$APPDIR/usr/libexec/gdk-pixbuf-query-loaders" > "$GDK_PIXBUF_MODULE_FILE"
+
+"$APP_HOME/runtime/bin/java" \
+    --enable-native-access=ALL-UNNAMED \
+    "-Djavagi.path=$APPDIR/usr/lib/ldm" \
+    "-Djava.library.path=$APPDIR/usr/lib/ldm" \
+    -cp "$APP_HOME/lib/*" \
+    org.ldm.gtk.LinuxDeviceManagerApp "$@" &
+app_pid=$!
+status=0
+wait "$app_pid" || status=$?
+app_pid=
+exit "$status"

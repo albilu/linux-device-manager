@@ -61,7 +61,9 @@ log "Collecting runtime classpath..."
 mvn -q -pl gui-gtk dependency:copy-dependencies \
     -DincludeScope=runtime \
     -DoutputDirectory="$APP_LIB"
-cp gui-gtk/target/ldm-gui-gtk-*.jar "$APP_LIB/"
+# An incremental build can leave older releases in target/. Never let one
+# shadow the current classes when Java expands the runtime classpath.
+cp "gui-gtk/target/ldm-gui-gtk-${PROJECT_VERSION}.jar" "$APP_LIB/"
 
 log "Creating jlink trimmed JRE..."
 "$JAVA_HOME/bin/jlink" \
@@ -243,7 +245,7 @@ EOF
     log "Built ${APP_ID_DIR}-${VERSION}-${RELEASE}-x86_64.pkg.tar.zst"
 }
 
-# ---- AppImage (reuses the stage; requires host GTK4 like the .deb) ----
+# ---- AppImage (reuses the stage and adds its portable GTK runtime) ----
 build_appimage() {
     if [[ "${SKIP_APPIMAGE:-0}" == "1" ]]; then
         log "Skipping AppImage (SKIP_APPIMAGE=1)"
@@ -255,6 +257,7 @@ build_appimage() {
     rm -rf "$appdir"
     mkdir -p "$appdir"
     cp -a "$STAGE/." "$appdir/"
+    python3 packaging/appimage/bundle-gtk.py "$appdir"
     cp packaging/appimage/AppRun "$appdir/AppRun"
     chmod 755 "$appdir/AppRun"
     # AppImage root entries: desktop file (bare Exec), icons (SVG + PNG for
@@ -264,8 +267,7 @@ build_appimage() {
         "$appdir/linux-device-manager.svg"
     cp gui-gtk/src/main/resources/icons/hicolor/512x512/apps/linux-device-manager.png \
         "$appdir/linux-device-manager.png"
-    cp gui-gtk/src/main/resources/icons/hicolor/scalable/apps/linux-device-manager.svg \
-        "$appdir/.DirIcon"
+    ln -s linux-device-manager.png "$appdir/.DirIcon"
     if [[ ! -x "$tool" ]]; then
         log "Downloading appimagetool..."
         curl -fL -o "$tool" \

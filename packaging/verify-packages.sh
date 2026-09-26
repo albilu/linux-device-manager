@@ -139,7 +139,9 @@ if [[ -s "$APPIMAGE" ]]; then
     (cd "$CHECK_ROOT/appimage" && "$APPIMAGE" --appimage-extract >/dev/null)
     diff -r "$APP_ROOT/lib" "$CHECK_ROOT/appimage/squashfs-root/opt/linux-device-manager/lib"
     test -x "$CHECK_ROOT/appimage/squashfs-root/AppRun"
-    echo "OK: AppImage payload matches stage"
+    test -s "$CHECK_ROOT/appimage/squashfs-root/usr/lib/ldm/libgtk-4.so.1"
+    test "$(file -Lb --mime-type "$CHECK_ROOT/appimage/squashfs-root/.DirIcon")" = image/png
+    echo "OK: AppImage application payload matches stage and includes GTK4"
 else
     echo "SKIP: AppImage not built (SKIP_APPIMAGE=1?)"
 fi

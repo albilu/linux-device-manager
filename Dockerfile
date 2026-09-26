@@ -1,10 +1,13 @@
-FROM eclipse-temurin:25-jdk
+# AppImageHub runs on Ubuntu 22.04 (glibc 2.35). Keep the native ABI floor
+# there, including the libraries bundled into the AppImage.
+FROM eclipse-temurin:25-jdk-jammy
 
 # Avoid interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install all dependencies in one layer: build tools, GTK dev libraries
-# (matching debian/control: libgtk-4-1 >= 4.14.5 comes from libgtk-4-dev),
+# (GTK >= 4.14.5 is built below; Jammy's GTK development package supplies
+# its build dependencies),
 # the native tools under test, X11 test support, and the packaging toolchain.
 RUN apt-get update && apt-get install -y \
     # Maven (JDK 25 comes from the base image)
@@ -15,6 +18,16 @@ RUN apt-get update && apt-get install -y \
     locales \
     curl \
     wget \
+    build-essential \
+    ninja-build \
+    python3-pip \
+    python3-packaging \
+    libpcre2-dev \
+    libffi-dev \
+    libmount-dev \
+    libxml2-dev \
+    libdrm-dev \
+    libtiff-dev \
     # GTK libraries for java-gi (GTK4)
     libgtk-4-dev \
     libglib2.0-dev \
@@ -41,10 +54,21 @@ RUN apt-get update && apt-get install -y \
     zstd \
     libarchive-tools \
     librsvg2-bin \
+    desktop-file-utils \
+    patchelf \
     # Utilities
     vim \
     tree \
     && rm -rf /var/lib/apt/lists/*
+
+# Use the same GTK build for tests and AppImage packaging. Building it on
+# Jammy avoids importing Noble/Resolute glibc requirements into the AppImage.
+RUN python3 -m pip install --no-cache-dir meson==1.4.2
+COPY packaging/appimage/build-gtk.sh /tmp/ldm-build-gtk.sh
+RUN bash /tmp/ldm-build-gtk.sh && rm /tmp/ldm-build-gtk.sh
+ENV PKG_CONFIG_PATH=/opt/ldm-gtk/lib/pkgconfig:/opt/ldm-gtk/share/pkgconfig
+ENV LD_LIBRARY_PATH=/opt/ldm-gtk/lib
+ENV XDG_DATA_DIRS=/opt/ldm-gtk/share:/usr/local/share:/usr/share
 
 # Exercise gettext with installed desktop locales, including French regional fallback.
 RUN localedef -i en_US -f UTF-8 en_US.UTF-8 && \
