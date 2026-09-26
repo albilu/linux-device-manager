@@ -86,6 +86,7 @@
                 <property name="vscrollbar-policy">automatic</property>
                 <child>
                   <object class="GtkLabel" id="general_info_label">
+                    <property name="selectable">True</property>
                     <property name="halign">start</property>
                     <property name="label">Select a device to view general information.</property>
                     <property name="valign">start</property>
@@ -109,6 +110,7 @@
                 <property name="vscrollbar-policy">automatic</property>
                 <child>
                   <object class="GtkLabel" id="advanced_info_label">
+                    <property name="selectable">True</property>
                     <property name="halign">start</property>
                     <property name="label">Advanced hardware details (e.g. lshw output) will appear here.</property>
                     <property name="valign">start</property>
@@ -132,6 +134,7 @@
                 <property name="vscrollbar-policy">automatic</property>
                 <child>
                   <object class="GtkLabel" id="driver_info_label">
+                    <property name="selectable">True</property>
                     <property name="halign">start</property>
                     <property name="label">Driver configuration and status (e.g. modinfo).</property>
                     <property name="valign">start</property>

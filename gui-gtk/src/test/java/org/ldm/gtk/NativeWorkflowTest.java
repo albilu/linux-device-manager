@@ -105,6 +105,18 @@ class NativeWorkflowTest {
             notebook.setCurrentPage(DetailTab.GENERAL.ordinal());
             notebook.setCurrentPage(DetailTab.DRIVER.ordinal());
             assertEquals(0, executor.queue.size(), "reopening a tab must use its cache");
+            DetailController details = field(owner, "detailController", DetailController.class);
+            for (DetailTab tab : List.of(DetailTab.GENERAL, DetailTab.ADVANCED, DetailTab.DRIVER)) {
+                notebook.setCurrentPage(tab.ordinal());
+                executor.flush();
+                String labelField = switch (tab) {
+                    case GENERAL -> "generalLabel";
+                    case ADVANCED -> "advancedLabel";
+                    case DRIVER -> "driverLabel";
+                    default -> throw new AssertionError(tab);
+                };
+                assertDetailCanBeCopied(field(details, labelField, Label.class));
+            }
             notebook.setCurrentPage(DetailTab.GENERAL.ordinal());
             int[] changes = {0};
             tree.getSelection().onChanged(() -> changes[0]++);
@@ -333,6 +345,22 @@ class NativeWorkflowTest {
         Popover popover = visiblePopover(window);
         if (popover != null) popover.popdown();
         pump();
+    }
+
+    private void assertDetailCanBeCopied(Label label) throws Exception {
+        assertTrue(label.getSelectable());
+        assertTrue(label.grabFocus());
+        label.getClipboard().setText("previous clipboard text");
+        external("xdotool", "windowfocus", windowId(), "key", "--clearmodifiers", "ctrl+a", "ctrl+c");
+        CompletableFuture<String> copied = new CompletableFuture<>();
+        label.getClipboard().readTextAsync(null, (source, result, data) -> {
+            try { copied.complete(label.getClipboard().readTextFinish(result)); }
+            catch (Exception e) { copied.completeExceptionally(e); }
+        });
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (!copied.isDone() && System.nanoTime() < deadline) pump();
+        assertTrue(copied.isDone(), "clipboard read timed out");
+        assertEquals(label.getLabel(), copied.get(), "Ctrl+A/Ctrl+C must copy the visible detail text");
     }
 
     private static Popover visiblePopover(Widget widget) {

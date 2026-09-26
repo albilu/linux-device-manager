@@ -32,7 +32,7 @@ public final class DeviceTreeController {
         for (CategoryGroup group : groups) {
             TreeIter parent = new TreeIter();
             store.append(parent, null);
-            setString(parent, 0, group.iconName());
+            setString(parent, 0, Icons.categoryIcon(group.category()));
             setString(parent, 1, group.displayName());
             for (Device device : group.devices()) {
                 TreeIter child = new TreeIter();

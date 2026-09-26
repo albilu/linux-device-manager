@@ -26,7 +26,7 @@ help: ## Show this help message
 	@echo "  make test     # Run the test suite"
 	@echo "  make run      # Run application with GUI support"
 	@echo "  make debug    # Run application in debug mode"
-  @echo "  make package  # Create .deb, .rpm, Arch, and AppImage packages"
+	@echo "  make package  # Create .deb, .rpm, Arch, and AppImage packages"
 
 build: ## Build Docker image
 	./docker-build.sh build
