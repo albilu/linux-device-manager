@@ -49,6 +49,7 @@ mkdir -p "$DIST" "$APP_LIB" \
     "$STAGE/usr/share/polkit-1/actions" \
     "$STAGE/usr/share/applications" \
     "$STAGE/usr/share/metainfo" \
+    "$STAGE/usr/share/appdata" \
     "$STAGE/usr/share/man/man1" \
     "$STAGE/usr/share/doc/${APP_ID_DIR}" \
     "$STAGE/usr/share/licenses/${APP_ID_DIR}" \
@@ -111,6 +112,10 @@ cp helper/org.ldm.policy "$STAGE/usr/share/polkit-1/actions/"
 # Desktop entry, metainfo, man page, copyright.
 cp packaging/resources/linux-device-manager.desktop "$STAGE/usr/share/applications/"
 cp packaging/resources/org.ldm.LinuxDeviceManager.metainfo.xml "$STAGE/usr/share/metainfo/"
+# Legacy appdata path with the same payload: old AppImage/appdir linters only
+# recognize *.appdata.xml, while modern stores read metainfo/.
+cp packaging/resources/org.ldm.LinuxDeviceManager.metainfo.xml \
+    "$STAGE/usr/share/appdata/linux-device-manager.appdata.xml"
 cp packaging/resources/linux-device-manager.1 "$STAGE/usr/share/man/man1/"
 cp packaging/resources/copyright "$STAGE/usr/share/doc/${APP_ID_DIR}/copyright"
 cp packaging/resources/copyright "$STAGE/usr/share/licenses/${APP_ID_DIR}/copyright"
@@ -251,10 +256,13 @@ build_appimage() {
     cp -a "$STAGE/." "$appdir/"
     cp packaging/appimage/AppRun "$appdir/AppRun"
     chmod 755 "$appdir/AppRun"
-    # AppImage root entries: desktop file (bare Exec), icon, .DirIcon.
+    # AppImage root entries: desktop file (bare Exec), icons (SVG + PNG for
+    # thumbnails), .DirIcon.
     cp packaging/resources/linux-device-manager.desktop "$appdir/"
     cp gui-gtk/src/main/resources/icons/hicolor/scalable/apps/linux-device-manager.svg \
         "$appdir/linux-device-manager.svg"
+    cp gui-gtk/src/main/resources/icons/hicolor/512x512/apps/linux-device-manager.png \
+        "$appdir/linux-device-manager.png"
     cp gui-gtk/src/main/resources/icons/hicolor/scalable/apps/linux-device-manager.svg \
         "$appdir/.DirIcon"
     if [[ ! -x "$tool" ]]; then
