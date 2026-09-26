@@ -59,8 +59,10 @@ modules:
       # Offline Maven build (same commands as packaging/build-packages.sh,
       # minus the host-only paths). Each build-command runs in its own shell,
       # so the Maven path is repeated in full (no shared variables).
-      - maven-dist/apache-maven-3.9.12/bin/mvn -o -B -Dmaven.repo.local=.m2/repository -DskipTests install
-      - maven-dist/apache-maven-3.9.12/bin/mvn -o -B -Dmaven.repo.local=.m2/repository -pl gui-gtk dependency:copy-dependencies -DincludeScope=runtime -DoutputDirectory=deps
+      # NOTE: flatpak-builder extracts archives with --strip-components=1,
+      # so the tarball lands directly as maven-dist/bin/mvn (no version dir).
+      - maven-dist/bin/mvn -o -B -Dmaven.repo.local=.m2/repository -DskipTests install
+      - maven-dist/bin/mvn -o -B -Dmaven.repo.local=.m2/repository -pl gui-gtk dependency:copy-dependencies -DincludeScope=runtime -DoutputDirectory=deps
       # Bundled jlink runtime (java.base only, like build-packages.sh).
       - jlink --add-modules java.base --no-header-files --no-man-pages --strip-debug --compress=zip-6 --output runtime
       - |
