@@ -19,7 +19,29 @@ public final class Categorizer {
 
     public DeviceCategory categorize(SysfsDevice device) {
         String kind = device.attributes().getOrDefault("DEVICE_CLASS", "");
-        DeviceCategory functional = switch (kind) {
+        DeviceCategory functional = fromFunction(kind);
+        if (functional != null) return functional;
+        DeviceCategory hardware = switch (device.bus()) {
+            case PCI -> fromPci(device.pciBaseClass(), device.pciSubClass());
+            case USB -> device.usbInterfaces().stream().map(this::fromInterface)
+                    .min(Comparator.comparingInt(this::usbPriority))
+                    .orElseGet(() -> fromUsb(device.usbClass()));
+            case OTHER -> fromGeneric(device);
+        };
+        // PCI's class identifies the hardware. For generic/vendor-specific devices, the
+        // functional endpoints also identify what the hardware actually does. A webcam's
+        // microphone/buttons must not move the combined device into another category.
+        if (device.bus() == org.ldm.core.model.Bus.PCI && hardware != DeviceCategory.PCI) return hardware;
+        DeviceCategory endpoints = java.util.Arrays.stream(device.attributes().getOrDefault("FUNCTIONAL_CLASSES", "").split(","))
+                .map(this::fromFunction).filter(java.util.Objects::nonNull)
+                .min(Comparator.comparingInt(this::usbPriority)).orElse(null);
+        if (endpoints == null) return hardware;
+        if (device.bus() == org.ldm.core.model.Bus.USB && usbPriority(hardware) < usbPriority(endpoints)) return hardware;
+        return endpoints;
+    }
+
+    private DeviceCategory fromFunction(String kind) {
+        return switch (kind) {
             case "block" -> DeviceCategory.STORAGE;
             case "net" -> DeviceCategory.NETWORK;
             case "sound" -> DeviceCategory.MULTIMEDIA;
@@ -27,14 +49,6 @@ public final class Categorizer {
             case "video4linux" -> DeviceCategory.IMAGING;
             case "drm" -> DeviceCategory.DISPLAY;
             default -> null;
-        };
-        if (functional != null) return functional;
-        return switch (device.bus()) {
-            case PCI -> fromPci(device.pciBaseClass(), device.pciSubClass());
-            case USB -> device.usbInterfaces().stream().map(this::fromInterface)
-                    .min(Comparator.comparingInt(this::usbPriority))
-                    .orElseGet(() -> fromUsb(device.usbClass()));
-            case OTHER -> fromGeneric(device);
         };
     }
 
@@ -46,7 +60,7 @@ public final class Categorizer {
         return switch (device.attributes().getOrDefault("SUBSYSTEM", "")) {
             case "cpu" -> DeviceCategory.PROCESSOR;
             case "memory" -> DeviceCategory.MEMORY;
-            case "acpi", "pnp" -> DeviceCategory.SYSTEM;
+            case "acpi", "pnp", "platform" -> DeviceCategory.SYSTEM;
             case "hid", "serio" -> DeviceCategory.INPUT;
             case "hdaudio" -> DeviceCategory.MULTIMEDIA;
             case "scsi", "nvme" -> DeviceCategory.STORAGE;
@@ -73,6 +87,7 @@ public final class Categorizer {
             case NETWORK -> 0;
             case BLUETOOTH -> 1;
             case IMAGING -> 2;
+            case DISPLAY -> 2;
             case MULTIMEDIA -> 3;
             case STORAGE -> 4;
             case PRINTER -> 5;

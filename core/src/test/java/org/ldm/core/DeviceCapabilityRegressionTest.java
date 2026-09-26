@@ -32,7 +32,7 @@ class DeviceCapabilityRegressionTest {
     }
 
     @Test
-    void realShapedInfrastructureHasAccurateStateAndNoBindingActions(@TempDir Path root) throws Exception {
+    void cpuStateAndCapabilitiesSurviveWhileSoftwareInfrastructureIsExcluded(@TempDir Path root) throws Exception {
         Path memory = infrastructure(root, "memory", "memory0");
         Files.writeString(memory.resolve("online"), "1\n");
         Files.writeString(memory.resolve("state"), "online\n");
@@ -41,12 +41,10 @@ class DeviceCapabilityRegressionTest {
         infrastructure(root, "clocksource", "clocksource0");
         infrastructure(root, "workqueue", "events");
         List<Device> all = devices(manager(root));
-        assertEquals(4, all.size());
+        assertEquals(1, all.size());
         assertTrue(all.stream().noneMatch(d -> actions.canEnable(d) || actions.canDisable(d)));
-        assertEquals(DeviceState.ACTIVE, all.stream().filter(d -> d.busInfo().equals("memory0")).findFirst().orElseThrow().state());
-        assertEquals(DeviceState.DISABLED, all.stream().filter(d -> d.busInfo().equals("cpu1")).findFirst().orElseThrow().state());
-        assertTrue(all.stream().filter(d -> d.busInfo().equals("events") || d.busInfo().equals("clocksource0"))
-                .allMatch(d -> d.state() == DeviceState.UNKNOWN));
+        assertEquals("cpu1", all.getFirst().busInfo());
+        assertEquals(DeviceState.DISABLED, all.getFirst().state());
     }
 
     @Test

@@ -104,8 +104,15 @@ class FeatureRegressionTest {
         Files.createSymbolicLink(root.resolve("class/block/sda"), disk);
         Files.createSymbolicLink(root.resolve("class/block/alias"), disk);
         write(root.resolve("class/block/sda1/partition"), "1");
-        write(root.resolve("class/net/eth0/operstate"), "up");
-        write(root.resolve("bus/platform/devices/audit-audio/modalias"), "platform:audit-audio");
+        Path nic = fs.pciDevice("0000:02:00.0", "0x020000", "0x1234", "0x5678", "igc");
+        Path net = nic.resolve("net/eth0");
+        write(net.resolve("operstate"), "up");
+        Files.createDirectories(root.resolve("class/net"));
+        Files.createSymbolicLink(root.resolve("class/net/eth0"), net);
+        Path audio = root.resolve("bus/platform/devices/audit-audio");
+        write(audio.resolve("modalias"), "platform:audit-audio");
+        Path firmware = Files.createDirectories(root.resolve("firmware/devicetree/base/audio"));
+        Files.createSymbolicLink(audio.resolve("of_node"), firmware);
         List<Device> all = manager(root, new StateResolver()).refresh().stream().flatMap(g -> g.devices().stream()).toList();
         assertEquals(4, all.size());
         assertEquals(4, all.stream().map(Device::id).distinct().count());
@@ -119,16 +126,18 @@ class FeatureRegressionTest {
     }
 
     @Test
-    void classDriverOwnerUsesCanonicalIdentityInsteadOfTheDeviceSymlinkName(@TempDir Path root) throws Exception {
+    void classInterfaceUsesItsHardwareOwnersCanonicalIdentityAndLogs(@TempDir Path root) throws Exception {
         FakeSysfs fs = new FakeSysfs(root);
         Path controller = fs.pciDevice("0000:01:00.0", "0x020000", "0x1234", "0x5678", "igc");
         Path net = root.resolve("class/net/eth0");
         Files.createDirectories(net);
         Files.createSymbolicLink(net.resolve("device"), controller);
-        Device d = manager(root, new StateResolver()).refresh().stream().flatMap(g -> g.devices().stream())
-                .filter(device -> device.busInfo().equals("eth0")).findFirst().orElseThrow();
+        List<Device> devices = manager(root, new StateResolver()).refresh().stream().flatMap(g -> g.devices().stream()).toList();
+        assertEquals(1, devices.size());
+        Device d = devices.getFirst();
+        assertEquals("eth0", d.properties().get("SYSFS_NET"));
         assertEquals(controller.toRealPath().toString(), d.driverBindings().getFirst().syspath());
-        assertEquals(DeviceActionKind.NONE, d.actionKind());
+        assertEquals(DeviceActionKind.DRIVER_BINDING, d.actionKind());
         var runner = new FakeCommandRunner().stubStdout("kernel: unrelated device event\n"
                 + "igc 0000:01:00.0: link changed", "journalctl", "-k", "-b", "--no-pager");
         String logs = new LogsDetailProvider(runner, "journalctl", "dmesg").load(d);
@@ -140,10 +149,11 @@ class FeatureRegressionTest {
     void nonPciBusCategoriesDoNotMisreportUnmanagedNodesAsMissingDrivers(@TempDir Path root) throws Exception {
         Files.createDirectories(root.resolve("bus/cpu/devices/cpu0"));
         Files.createDirectories(root.resolve("bus/memory/devices/memory0"));
-        Files.createDirectories(root.resolve("bus/acpi/devices/ACPI0000:00"));
+        write(root.resolve("bus/acpi/devices/ACPI0000:00/hid"), "ACPI0000");
         List<Device> all = manager(root, new StateResolver()).refresh().stream().flatMap(g -> g.devices().stream()).toList();
-        assertEquals(Set.of(DeviceCategory.PROCESSOR, DeviceCategory.MEMORY, DeviceCategory.SYSTEM),
+        assertEquals(Set.of(DeviceCategory.PROCESSOR, DeviceCategory.SYSTEM),
                 all.stream().map(Device::category).collect(java.util.stream.Collectors.toSet()));
+        assertEquals(2, all.size(), "a memory hotplug range is not a memory module");
         assertTrue(all.stream().allMatch(d -> d.actionKind() == DeviceActionKind.NONE && d.state() == DeviceState.UNKNOWN));
     }
 

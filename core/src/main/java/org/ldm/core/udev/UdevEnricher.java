@@ -50,7 +50,8 @@ public final class UdevEnricher {
      */
     public String displayName(SysfsDevice device, Map<String, String> props) {
         String model = firstNonBlank(props.get("ID_MODEL_FROM_DATABASE"), props.get("ID_MODEL"),
-                device.attributes().get("model"), device.attributes().get("product"), device.attributes().get("name"));
+                device.attributes().get("model"), device.attributes().get("product"), device.attributes().get("name"),
+                device.attributes().get("HID_NAME"));
         String vendor = firstNonBlank(props.get("ID_VENDOR_FROM_DATABASE"), props.get("ID_VENDOR"));
         if (model != null && vendor != null) {
             return vendor + " " + model;

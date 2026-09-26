@@ -18,6 +18,8 @@ public final class GeneralDetailProvider implements DetailProvider {
                 + "Vendor:   " + device.vendorId() + '\n'
                 + "Product:  " + device.productId() + '\n'
                 + "Driver:   " + device.driver().orElse("none") + '\n'
+                + (device.properties().containsKey("SYSFS_NET")
+                    ? "Interfaces: " + device.properties().get("SYSFS_NET") + '\n' : "")
                 + "Device path: " + device.syspath()
                 + device.authorized().map(a -> "\nUSB authorization: " + (a ? "Allowed" : "Blocked")).orElse("")
                 + (device.actionKind() == org.ldm.core.model.DeviceActionKind.NONE

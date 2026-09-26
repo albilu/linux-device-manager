@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
-/** Enumerates bus devices and functional class devices, deduplicating canonical sysfs nodes. */
+/** Reads sysfs nodes, then resolves them into a hardware inventory. */
 public final class SysfsScanner {
     // These buses support device driver binding. Infrastructure such as RAM, CPUs, clocks,
     // workqueues and performance counters has different state/management interfaces.
@@ -31,8 +31,8 @@ public final class SysfsScanner {
 
     public List<SysfsDevice> scan() {
         Map<String, SysfsDevice> devices = new LinkedHashMap<>();
-        // Bus and class aliases of one node share an identity. A controller and its disk/interface
-        // are distinct nodes and deliberately remain separate entries.
+        // Canonical paths remove symlink aliases. HardwareInventory also resolves the different
+        // kernel nodes that describe the same hardware (for example a PCI NIC and its netdev).
         for (Path bus : listDir(sysRoot.resolve("bus"))) {
             if (Thread.currentThread().isInterrupted()) break;
             String subsystem = bus.getFileName().toString();
@@ -53,7 +53,7 @@ public final class SysfsScanner {
                 add(devices, entry, kind, kind);
             }
         }
-        return List.copyOf(devices.values());
+        return new HardwareInventory(sysRoot).consolidate(devices);
     }
 
     private void add(Map<String, SysfsDevice> devices, Path entry, String subsystem, String kind) {
@@ -85,7 +85,7 @@ public final class SysfsScanner {
         attributes.put("SUBSYSTEM", actualSubsystem);
         if (!kind.isEmpty()) attributes.put("DEVICE_CLASS", kind);
         for (String file : List.of("modalias", "model", "name", "product", "manufacturer",
-                "serial", "busnum", "devnum", "operstate", "size", "type", "online", "state")) {
+                "serial", "busnum", "devnum", "operstate", "size", "type", "online", "state", "hid", "status")) {
             readFile(path.resolve(file)).filter(s -> !s.isBlank()).ifPresent(s -> attributes.put(file, s));
         }
         if (kind.equals("block")) {
