@@ -8,7 +8,14 @@ dependencies) into the local repository, diffs it, and emits
 `maven-sources.json` next to the Flathub submission manifest.
 
 Usage (run from the repository root, once per dependency change):
-    python3 packaging/flatpak/flathub/generate-maven-sources.py
+    python3 packaging/flatpak/flathub/generate-maven-sources.py \
+        --maven /path/to/apache-maven-3.9.12/bin/mvn \
+        --local-repo /tmp/ldm-m2-plain
+
+The --maven binary must match the manifest's pinned Maven: lifecycle
+plugin versions not pinned in the root pom float with the Maven
+distribution. The root pom pins every plugin the build uses, but
+regenerating with the same binary removes all doubt.
 
 The upstream flatpak-maven-generator.py is not published anywhere
 verifiable, so this self-contained generator replaces it. Only Maven
@@ -38,6 +45,13 @@ def parse_args() -> argparse.Namespace:
         description="Vendor Maven Central artifacts as flatpak-builder "
                     "file sources for offline Flathub builds.")
     parser.add_argument(
+        "--maven", default="mvn",
+        help="Maven executable to resolve with. Must be the same build the "
+             "Flathub manifest uses (pinned 3.9.12 tarball): unpinned "
+             "lifecycle plugin versions float with the Maven distribution, "
+             "so resolving with a different Maven silently vendors the "
+             "wrong plugin versions.")
+    parser.add_argument(
         "--local-repo", default=None,
         help="Resolve into a scratch local repository instead of the "
              "default one. REQUIRED for a complete listing unless the "
@@ -47,11 +61,11 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def local_repo(explicit: str | None) -> Path:
+def local_repo(mvn: str, explicit: str | None) -> Path:
     if explicit:
         return Path(explicit)
     out = subprocess.run(
-        ["mvn", "-q", "-N", "help:evaluate",
+        [mvn, "-q", "-N", "help:evaluate",
          "-Dexpression=settings.localRepository", "-DforceStdout"],
         cwd=ROOT, capture_output=True, text=True, check=True,
     )
@@ -74,7 +88,7 @@ def maven_env() -> dict:
     return env
 
 
-def resolve(repo: Path) -> None:
+def resolve(mvn: str, repo: Path) -> None:
     # Mirror the sandbox build exactly: a full `install -DskipTests`
     # (lifecycle plugins included) followed by the copy-dependencies call
     # the manifest uses to assemble lib/. Reactor artifacts (org.ldm) come
@@ -82,10 +96,10 @@ def resolve(repo: Path) -> None:
     env = maven_env()
     repo_arg = [f"-Dmaven.repo.local={repo}"]
     subprocess.run(
-        ["mvn", "-B", "-q", *repo_arg, "-DskipTests", "install"],
+        [mvn, "-B", "-q", *repo_arg, "-DskipTests", "install"],
         cwd=ROOT, check=True, env=env)
     subprocess.run(
-        ["mvn", "-B", "-q", *repo_arg, "-pl", "gui-gtk",
+        [mvn, "-B", "-q", *repo_arg, "-pl", "gui-gtk",
          "dependency:copy-dependencies",
          "-DincludeScope=runtime",
          "-DoutputDirectory=/tmp/ldm-flatpak-deps-probe"],
@@ -111,7 +125,7 @@ def check_central(repo: Path, rel: str) -> None:
 
 def main() -> int:
     args = parse_args()
-    repo = local_repo(args.local_repo)
+    repo = local_repo(args.maven, args.local_repo)
     if args.local_repo is None:
         print("WARNING: resolving into the default local repository; the "
               "listing will be incomplete unless it is empty. Prefer "
@@ -119,7 +133,7 @@ def main() -> int:
     else:
         repo.mkdir(parents=True, exist_ok=True)
     before = snapshot(repo)
-    resolve(repo)
+    resolve(args.maven, repo)
     new_files = sorted(
         f for f in snapshot(repo) - before
         if not f.startswith(EXCLUDE_PREFIXES)
