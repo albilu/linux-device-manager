@@ -64,7 +64,9 @@ modules:
       - maven-dist/bin/mvn -o -B -Dmaven.repo.local=.m2/repository -DskipTests install
       # Fully-qualified plugin coordinates: bare prefix resolution needs
       # maven-metadata, which is never vendored (offline mode would fail).
-      - maven-dist/bin/mvn -o -B -Dmaven.repo.local=.m2/repository -pl gui-gtk org.apache.maven.plugins:maven-dependency-plugin:3.8.1:copy-dependencies -DincludeScope=runtime -DoutputDirectory=deps
+      # ../deps because a relative outputDirectory resolves against the
+      # gui-gtk module basedir, not the reactor root.
+      - maven-dist/bin/mvn -o -B -Dmaven.repo.local=.m2/repository -pl gui-gtk org.apache.maven.plugins:maven-dependency-plugin:3.8.1:copy-dependencies -DincludeScope=runtime -DoutputDirectory=../deps
       # Bundled jlink runtime (java.base only, like build-packages.sh).
       - jlink --add-modules java.base --no-header-files --no-man-pages --strip-debug --compress=zip-6 --output runtime
       - |
