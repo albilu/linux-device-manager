@@ -7,9 +7,10 @@
 #     anywhere verifiable, so this repo carries its own generator).
 #   - Apache Maven itself is a pinned archive source (there is no
 #     org.freedesktop.Sdk.Extension.maven on Flathub); the JDK comes from
-#     org.freedesktop.Sdk.Extension.openjdk25, which only has 25.08/26.08
-#     branches — hence runtime-version 49 (GNOME 49 = Freedesktop 25.08).
-#     The local bundle manifest stays on GNOME 48; that is independent.
+#     org.freedesktop.Sdk.Extension.openjdk25, whose branches track the
+#     Freedesktop base (25.08/26.08) — hence runtime-version 51 (GNOME 51 =
+#     Freedesktop 26.08, the latest at submission time). The local bundle
+#     manifest stays on GNOME 48; that is independent.
 #
 # Per-release checklist (see FLATHUB.md):
 #   1. set pom.xml to the plain release version, commit, tag vX.Y.Z, push,
@@ -21,7 +22,7 @@
 #      "Add io.github.getldm.linux-device-manager".
 app-id: io.github.getldm.linux-device-manager
 runtime: org.gnome.Platform
-runtime-version: '50'
+runtime-version: '51'
 sdk: org.gnome.Sdk
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.openjdk25
@@ -31,11 +32,6 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --talk-name=org.freedesktop.Notifications
-  # The in-code GTK application id predates the Flatpak id.
-  - --own-name=com.example.DeviceManager
-  # Allows future host-tool integration via `flatpak-spawn --host`
-  # (lspci/lsusb on the host); sandboxed enumeration is read-only best-effort.
-  - --talk-name=org.freedesktop.Flatpak
 modules:
   - name: linux-device-manager
     buildsystem: simple
@@ -47,8 +43,8 @@ modules:
       - type: git
         url: https://github.com/getldm/linux-device-manager.git
         # Release tag and its commit sha, updated per release.
-        tag: v0.2.2
-        commit: 48ef2061c1f9d2b8c37527a28574b997291102e4
+        tag: v0.2.3
+        commit: __COMMIT__
       # Vendored Maven Central artifacts; see generate-maven-sources.py.
       # Extracted to .m2/repository/ in the build dir; the build below
       # points Maven at it, so no network access is needed.

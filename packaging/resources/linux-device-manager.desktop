@@ -11,4 +11,4 @@ Terminal=false
 Categories=Settings;HardwareSettings;
 Keywords=device;hardware;driver;usb;pci;sysfs;
 StartupNotify=true
-StartupWMClass=com.example.DeviceManager
+StartupWMClass=io.github.getldm.linux-device-manager

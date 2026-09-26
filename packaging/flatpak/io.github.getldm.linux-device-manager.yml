@@ -13,11 +13,6 @@ finish-args:
   - --socket=wayland
   - --socket=fallback-x11
   - --talk-name=org.freedesktop.Notifications
-  # The in-code GTK application id predates the Flatpak id.
-  - --own-name=com.example.DeviceManager
-  # Allows future host-tool integration via `flatpak-spawn --host`
-  # (lspci/lsusb on the host); sandboxed enumeration is read-only best-effort.
-  - --talk-name=org.freedesktop.Flatpak
 modules:
   - name: linux-device-manager
     buildsystem: simple

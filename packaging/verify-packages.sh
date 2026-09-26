@@ -85,7 +85,7 @@ for format in deb rpm arch; do
     test -s "$root/usr/share/applications/linux-device-manager.desktop"
     grep -qx 'Exec=linux-device-manager' "$root/usr/share/applications/linux-device-manager.desktop"
     grep -qx 'Icon=linux-device-manager' "$root/usr/share/applications/linux-device-manager.desktop"
-    grep -qx 'StartupWMClass=com.example.DeviceManager' "$root/usr/share/applications/linux-device-manager.desktop"
+    grep -qx 'StartupWMClass=io.github.getldm.linux-device-manager' "$root/usr/share/applications/linux-device-manager.desktop"
     test -s "$root/usr/share/metainfo/io.github.getldm.linux-device-manager.metainfo.xml"
     test -s "$root/usr/share/appdata/linux-device-manager.appdata.xml"
     test -s "$root/usr/share/man/man1/linux-device-manager.1"

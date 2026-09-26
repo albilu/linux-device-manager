@@ -62,7 +62,7 @@ import org.javagi.base.Out;
  */
 public final class LinuxDeviceManagerApp {
 
-    private static final String APP_VERSION = "0.2.2";
+    private static final String APP_VERSION = "0.2.3";
 
     private final Application app;
     private final DeviceManager manager;
@@ -93,7 +93,7 @@ public final class LinuxDeviceManagerApp {
     }
 
     LinuxDeviceManagerApp(DeviceManager manager, DeviceActionService actionService, UiExecutor ui) {
-        app = new Application("com.example.DeviceManager", ApplicationFlags.DEFAULT_FLAGS);
+        app = new Application("io.github.getldm.linux-device-manager", ApplicationFlags.DEFAULT_FLAGS);
         app.onActivate(this::activate);
         this.manager = manager;
         this.actionService = actionService;
