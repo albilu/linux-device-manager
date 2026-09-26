@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     # Native tools under test (ToolLocator targets, see core/Main.java)
     pciutils \
     usbutils \
+    v4l-utils \
     lshw \
     kmod \
     udev \

@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.ldm.core.DeviceManager;
 import org.ldm.core.categorize.Categorizer;
-import org.ldm.core.detail.GeneralDetailProvider;
+import org.ldm.core.detail.AdvancedDetailProvider;
 import org.ldm.core.model.*;
 import org.ldm.core.process.FakeCommandRunner;
 import org.ldm.core.state.StateResolver;
@@ -38,7 +38,8 @@ class HardwareInventoryTest {
         assertEquals(SysfsIdentity.read(ethernet), nic.instanceId());
         assertEquals(DeviceActionKind.DRIVER_BINDING, nic.actionKind());
         assertTrue(nic.disableSupported());
-        assertTrue(new GeneralDetailProvider().load(nic).contains("Interfaces: enp1s0, veth-physical"));
+        assertTrue(new AdvancedDetailProvider(new FakeCommandRunner(), "lspci", "lsusb")
+                .load(nic).contains("Interfaces: enp1s0, veth-physical"));
         assertEquals(DeviceState.INACTIVE_NO_DRIVER, devices.stream().filter(d -> d.syspath().equals(wifi.toString()))
                 .findFirst().orElseThrow().state());
     }

@@ -3,6 +3,7 @@ package org.ldm.core.detail;
 import org.ldm.core.model.Device;
 import org.ldm.core.process.CommandResult;
 import org.ldm.core.process.CommandRunner;
+import org.ldm.core.process.ToolLocator;
 import java.time.Duration;
 
 /**
@@ -16,17 +17,38 @@ public final class AdvancedDetailProvider implements DetailProvider {
     private final CommandRunner runner;
     private final String lspci;
     private final String lsusb;
+    private final HardwareDetailsReader hardware;
 
     public AdvancedDetailProvider(CommandRunner runner, String lspciPath, String lsusbPath) {
+        this(runner, lspciPath, lsusbPath, new HardwareDetailsReader(runner, new ToolLocator(null)));
+    }
+
+    public AdvancedDetailProvider(CommandRunner runner, String lspciPath, String lsusbPath, HardwareDetailsReader hardware) {
         this.runner = runner;
         this.lspci = lspciPath;
         this.lsusb = lsusbPath;
+        this.hardware = hardware;
     }
 
     @Override
     public String load(Device device) {
+        String specifications = hardware.read(device).render(false);
+        return (specifications.isEmpty() ? "" : "Hardware specifications\n\n" + specifications + "\n\n")
+                + "Technical details\n\n"
+                + "Device path: " + device.syspath() + '\n'
+                + "Bus address: " + device.busInfo() + '\n'
+                + "Vendor ID: " + device.vendorId() + '\n'
+                + "Product ID: " + device.productId() + '\n'
+                + "Driver: " + device.driver().orElse("none") + '\n'
+                + "State: " + device.state() + '\n'
+                + device.authorized().map(a -> "USB authorization: " + (a ? "Allowed" : "Blocked") + '\n').orElse("")
+                + (device.properties().containsKey("SYSFS_NET") ? "Interfaces: " + device.properties().get("SYSFS_NET") + '\n' : "")
+                + '\n' + rawDetails(device);
+    }
+
+    private String rawDetails(Device device) {
         if (device.bus() == org.ldm.core.model.Bus.OTHER) {
-            return "Device path: " + device.syspath() + "\n" + device.properties().entrySet().stream()
+            return device.properties().entrySet().stream()
                     .sorted(java.util.Map.Entry.comparingByKey())
                     .map(e -> e.getKey() + ": " + e.getValue())
                     .collect(java.util.stream.Collectors.joining("\n"));

@@ -22,6 +22,8 @@ public class UiExecutor implements AutoCloseable {
             T delivered;
             try {
                 delivered = work.get();
+            } catch (java.util.concurrent.CancellationException cancelled) {
+                return;
             } catch (Throwable throwable) {
                 AppLog.error("Background task failed", throwable);
                 delivered = null;

@@ -25,6 +25,8 @@ import org.gnome.gtk.Spinner;
 import org.gnome.gtk.TextIter;
 import org.gnome.gtk.TextView;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 
@@ -72,7 +74,7 @@ class DetailControllerTest {
         assertEquals("", f.advancedLabel.getLabel());
         assertEquals("", f.driverLabel.getLabel());
         assertEquals("", f.logsText());
-        assertEquals(0, f.executor.submissions);
+        assertEquals(1, f.executor.submissions);
         assertFalse(f.spinner.getSpinning());
         assertEquals("Ready", f.statusLabel.getLabel());
     }
@@ -83,13 +85,15 @@ class DetailControllerTest {
 
         Fixture f = new Fixture();
         f.controller.showDevice(device("GPU"));
+        assertEquals("Loading...", f.generalLabel.getLabel());
+        f.executor.flushCallbacks();
         f.controller.showTab(DetailTab.DRIVER);
 
         assertEquals("general-GPU", f.generalLabel.getLabel());
         assertEquals("", f.advancedLabel.getLabel());
         assertEquals("Loading...", f.driverLabel.getLabel());
         assertEquals("", f.logsText());
-        assertEquals(1, f.executor.submissions);
+        assertEquals(2, f.executor.submissions);
         assertTrue(f.spinner.getSpinning());
     }
 
@@ -103,10 +107,22 @@ class DetailControllerTest {
         f.controller.showDevice(device("NIC"));
         f.executor.flushCallbacks();
 
-        assertEquals("general-NIC", f.generalLabel.getLabel());
+        assertEquals("", f.generalLabel.getLabel());
         assertEquals("advanced-NIC", f.advancedLabel.getLabel());
         assertEquals("", f.driverLabel.getLabel());
         assertEquals("", f.logsText());
+    }
+
+    @Test
+    void staleGeneralResultsCannotReplaceTheNewSelection() {
+        assumeTrue(Gtk.initCheck(), "no display available for GTK");
+        Fixture f = new Fixture();
+        f.controller.showDevice(device("GPU"));
+        f.controller.showDevice(device("CPU"));
+        f.executor.flushCallbacks();
+        assertEquals("general-CPU", f.generalLabel.getLabel());
+        assertEquals("", f.advancedLabel.getLabel());
+        assertFalse(f.spinner.getSpinning());
     }
 
     @Test
@@ -115,6 +131,7 @@ class DetailControllerTest {
         Fixture f = new Fixture();
         Device device = device("GPU");
         f.controller.showDevice(device);
+        f.executor.flushCallbacks();
         f.controller.showTab(DetailTab.DRIVER);
         f.executor.flushCallbacks();
         assertEquals("driver-GPU", f.driverLabel.getLabel());
@@ -122,34 +139,38 @@ class DetailControllerTest {
         f.controller.showTab(DetailTab.DRIVER);
         f.controller.clearSelection();
         f.controller.showDevice(device);
-        assertEquals(1, f.executor.submissions);
+        assertEquals(2, f.executor.submissions);
         assertEquals("driver-GPU", f.driverLabel.getLabel());
         f.controller.invalidate();
         f.controller.showDevice(device);
-        assertEquals(2, f.executor.submissions);
+        assertEquals(3, f.executor.submissions);
         assertEquals("Loading...", f.driverLabel.getLabel());
         f.executor.flushCallbacks();
     }
 
-    @Test
-    void suspendedDetailsCannotDelayAnExplicitAction() throws Exception {
+    @ParameterizedTest
+    @EnumSource(value = DetailTab.class, names = {"GENERAL", "LOGS"})
+    void suspendedDetailsCannotDelayAnExplicitAction(DetailTab tab) throws Exception {
         assumeTrue(Gtk.initCheck(), "no display available for GTK");
         var started = new java.util.concurrent.CountDownLatch(1);
         var interrupted = new java.util.concurrent.CountDownLatch(1);
         try (UiExecutor executor = new UiExecutor()) {
-            var manager = new DeviceManager(null, null, null, null, Map.of(
-                    DetailTab.GENERAL, d -> "general",
-                    DetailTab.LOGS, d -> {
+            org.ldm.core.detail.DetailProvider slow = d -> {
                         started.countDown();
                         try { Thread.sleep(30000); }
                         catch (InterruptedException e) { interrupted.countDown(); Thread.currentThread().interrupt(); }
-                        return "stale logs";
-                    }));
+                        return "stale details";
+                    };
+            var manager = new DeviceManager(null, null, null, null, Map.of(
+                    DetailTab.GENERAL, tab == DetailTab.GENERAL ? slow : d -> "general",
+                    DetailTab.LOGS, slow));
             var spinner = new Spinner();
             var controller = new DetailController(manager, executor, new StatusController(spinner, new Label("")),
                     new Label(""), new Label(""), new Label(""), new TextView());
+            long before = System.nanoTime();
             controller.showDevice(device("GPU"));
-            controller.showTab(DetailTab.LOGS);
+            controller.showTab(tab);
+            assertTrue(System.nanoTime() - before < 1_000_000_000L, "detail queries blocked the GTK thread");
             assertTrue(started.await(2, java.util.concurrent.TimeUnit.SECONDS));
             controller.setSuspended(true);
             var action = new java.util.concurrent.CountDownLatch(1);

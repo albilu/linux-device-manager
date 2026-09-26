@@ -6,6 +6,7 @@ import org.ldm.core.detail.AdvancedDetailProvider;
 import org.ldm.core.detail.DetailProvider;
 import org.ldm.core.detail.DriverDetailProvider;
 import org.ldm.core.detail.GeneralDetailProvider;
+import org.ldm.core.detail.HardwareDetailsReader;
 import org.ldm.core.detail.LogsDetailProvider;
 import org.ldm.core.model.CategoryGroup;
 import org.ldm.core.model.Device;
@@ -32,10 +33,11 @@ public final class Main {
     public static void main(String[] args) {
         ToolLocator tools = new ToolLocator(null);
         CommandRunner runner = new ProcessCommandRunner();
+        var hardware = new HardwareDetailsReader(runner, tools);
         Map<DetailTab, DetailProvider> providers = Map.of(
-                DetailTab.GENERAL, new GeneralDetailProvider(),
+                DetailTab.GENERAL, new GeneralDetailProvider(hardware),
                 DetailTab.ADVANCED,
-                new AdvancedDetailProvider(runner, tools.locate("lspci"), tools.locate("lsusb")),
+                new AdvancedDetailProvider(runner, tools.locate("lspci"), tools.locate("lsusb"), hardware),
                 DetailTab.DRIVER, new DriverDetailProvider(runner, tools.locate("modinfo")),
                 DetailTab.LOGS,
                 new LogsDetailProvider(runner, tools.locate("journalctl"), tools.locate("dmesg")));

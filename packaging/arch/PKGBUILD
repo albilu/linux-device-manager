@@ -14,6 +14,7 @@ depends=(
 optdepends=(
     'pciutils: PCI device details via lspci'
     'usbutils: USB device details via lsusb'
+    'v4l-utils: camera resolutions and frame rates'
     'kmod: driver details via modinfo'
 )
 source=("opt-linux-device-manager.tar")

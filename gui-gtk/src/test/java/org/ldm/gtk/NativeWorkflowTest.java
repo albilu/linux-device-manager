@@ -130,7 +130,7 @@ class NativeWorkflowTest {
             pump();
             assertEquals("Device 1", selected().displayName());
             assertEquals(1, changes[0]);
-            assertEquals(0, executor.queue.size(), "General must not load hidden tabs");
+            assertEquals(1, executor.queue.size(), "selecting a new device must schedule only General");
             hideMenu();
             executor.flush();
 
@@ -141,7 +141,7 @@ class NativeWorkflowTest {
             pump();
             assertEquals("Device 30", selected().displayName());
             assertEquals(2, changes[0]);
-            assertEquals(0, executor.queue.size());
+            assertEquals(1, executor.queue.size());
             hideMenu();
             executor.flush();
 

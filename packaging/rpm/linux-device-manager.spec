@@ -18,6 +18,7 @@ Requires:       polkit
 Requires:       systemd-udev
 Recommends:     pciutils
 Recommends:     usbutils
+Recommends:     v4l-utils
 Recommends:     kmod
 Recommends:     systemd
 

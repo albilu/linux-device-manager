@@ -1,6 +1,7 @@
 package org.ldm.core.detail;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import org.ldm.core.model.Bus;
 import org.ldm.core.model.Device;
@@ -20,22 +21,25 @@ class GeneralDetailProviderTest {
     }
 
     @Test
-    void rendersDeviceFields() {
+    void showsReadableIdentityAndStatusWithoutBusDiagnostics() {
         String text = provider.load(device(Optional.of("nvidia")));
 
         assertTrue(text.contains("NVIDIA RTX 3060"), text);
         assertTrue(text.contains("Display adapters"), text);
-        assertTrue(text.contains("ACTIVE"), text);
-        assertTrue(text.contains("0000:01:00.0"), text);
-        assertTrue(text.contains("10de"), text);
-        assertTrue(text.contains("2503"), text);
-        assertTrue(text.contains("nvidia"), text);
+        assertTrue(text.contains("Status: Enabled"), text);
+        assertTrue(text.contains("Connection: PCI"), text);
+        assertFalse(text.contains("0000:01:00.0"), text);
+        assertFalse(text.contains("10de"), text);
+        assertFalse(text.contains("2503"), text);
+        assertFalse(text.contains("/sys/x"), text);
     }
 
     @Test
-    void showsNoneWhenNoDriver() {
-        String text = provider.load(device(Optional.empty()));
+    void explainsAMissingDriverInPlainLanguage() {
+        var device = new Device("/sys/x", "/sys/x", "0000:01:00.0", Bus.PCI, "GPU", "10de", "2503",
+                DeviceCategory.DISPLAY, DeviceState.INACTIVE_NO_DRIVER, Optional.empty(), Map.of());
+        String text = provider.load(device);
 
-        assertTrue(text.contains("Driver:") && text.contains("none"), text);
+        assertTrue(text.contains("Status: No driver loaded"), text);
     }
 }

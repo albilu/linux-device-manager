@@ -8,6 +8,7 @@ import org.ldm.core.detail.AdvancedDetailProvider;
 import org.ldm.core.detail.DetailProvider;
 import org.ldm.core.detail.DriverDetailProvider;
 import org.ldm.core.detail.GeneralDetailProvider;
+import org.ldm.core.detail.HardwareDetailsReader;
 import org.ldm.core.detail.LogsDetailProvider;
 import org.ldm.core.model.Device;
 import org.ldm.core.model.DetailTab;
@@ -441,10 +442,11 @@ public final class LinuxDeviceManagerApp {
     private static DeviceManager buildManager() {
         ToolLocator tools = new ToolLocator(null);
         var runner = new ProcessCommandRunner();
+        var hardware = new HardwareDetailsReader(runner, tools);
         Map<DetailTab, DetailProvider> providers = Map.of(
-                DetailTab.GENERAL, new GeneralDetailProvider(),
+                DetailTab.GENERAL, new GeneralDetailProvider(hardware),
                 DetailTab.ADVANCED, new AdvancedDetailProvider(
-                        runner, tools.locate("lspci"), tools.locate("lsusb")),
+                        runner, tools.locate("lspci"), tools.locate("lsusb"), hardware),
                 DetailTab.DRIVER, new DriverDetailProvider(runner, tools.locate("modinfo")),
                 DetailTab.LOGS, new LogsDetailProvider(
                         runner, tools.locate("journalctl"), tools.locate("dmesg")));

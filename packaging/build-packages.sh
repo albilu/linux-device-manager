@@ -196,6 +196,7 @@ depend = polkit
 depend = systemd
 optdepend = pciutils: PCI device details via lspci
 optdepend = usbutils: USB device details via lsusb
+optdepend = v4l-utils: camera resolutions and frame rates
 optdepend = kmod: driver details via modinfo
 packager = Linux Device Manager <dev@example.com>
 size = $((size * 1024))

@@ -5,7 +5,7 @@ Priority: optional
 Architecture: amd64
 Maintainer: Linux Device Manager <dev@example.com>
 Depends: libgtk-4-1 (>= 4.14.5), policykit-1, udev
-Recommends: pciutils, usbutils, kmod, systemd
+Recommends: pciutils, usbutils, v4l-utils, kmod, systemd
 Description: View and manage hardware devices
  Linux Device Manager is a GTK4 application that enumerates devices
  from sysfs/udev, displays them in a category tree with detail tabs

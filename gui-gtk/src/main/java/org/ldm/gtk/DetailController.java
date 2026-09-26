@@ -59,10 +59,9 @@ public final class DetailController {
     public void showDevice(Device device) {
         cancelPending();
         selected = device;
-        generalLabel.setLabel(manager.loadDetails(device, DetailTab.GENERAL));
         var values = cache.computeIfAbsent(device, ignored -> new EnumMap<>(DetailTab.class));
         for (DetailTab tab : DetailTab.values()) {
-            if (tab != DetailTab.GENERAL) update(tab, values.getOrDefault(tab, ""));
+            update(tab, values.getOrDefault(tab, ""));
         }
         loadVisible();
     }
@@ -82,7 +81,7 @@ public final class DetailController {
     }
 
     private void loadVisible() {
-        if (suspended || selected == null || visibleTab == DetailTab.GENERAL || pending != null) return;
+        if (suspended || selected == null || pending != null) return;
         Device device = selected;
         DetailTab tab = visibleTab;
         String cached = cache.get(device).get(tab);
