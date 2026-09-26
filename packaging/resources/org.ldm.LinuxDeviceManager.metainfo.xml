@@ -30,7 +30,8 @@
     </screenshot>
   </screenshots>
   <releases>
-    <release version="0.2.0" date="2026-09-26"/>
+    <release version="0.2.1" date="2026-09-26"/>
+    <release version="0.2.0" date="2026-09-25"/>
   </releases>
   <provides>
     <binary>linux-device-manager</binary>
