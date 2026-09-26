@@ -10,7 +10,7 @@
 
 Linux Device Manager (LDM) combines sysfs, udev, and proven tools — `lspci`, `lsusb`, `modinfo`, `journalctl`, `dmesg` — with detail views, driver info, and a polkit-protected privileged helper for device actions.
 
-[Features](#features) · [Installation](#installation) · [How LDM compares](#how-ldm-compares) · [Building from source](#building-from-source)
+[Features](#features) · [Installation](#installation) · [Building from source](#building-from-source)
 
 ![LDM main window](docs/wiki/images/screenshot.png)
 
