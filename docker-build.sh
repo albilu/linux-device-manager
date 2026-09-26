@@ -69,7 +69,17 @@ debug() {
 # Build the Docker image
 build() {
     log "Building Docker image..."
-    docker build --build-arg "LDM_UID=$(id -u)" --build-arg "LDM_GID=$(id -g)" -t "$IMAGE_NAME" .
+    if [ "${GITHUB_ACTIONS:-}" = "true" ] && docker buildx version >/dev/null 2>&1; then
+        # CI: reuse GitHub Actions cache for apt + toolchain layers so
+        # rebuilds only pay for changed layers. --load keeps the
+        # $IMAGE_NAME tag available for subsequent `docker run` steps.
+        docker buildx build \
+            --build-arg "LDM_UID=$(id -u)" --build-arg "LDM_GID=$(id -g)" \
+            --cache-from type=gha --cache-to type=gha,mode=max \
+            -t "$IMAGE_NAME" --load .
+    else
+        docker build --build-arg "LDM_UID=$(id -u)" --build-arg "LDM_GID=$(id -g)" -t "$IMAGE_NAME" .
+    fi
 }
 
 # Start development container

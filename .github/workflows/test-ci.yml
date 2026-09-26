@@ -18,6 +18,20 @@ jobs:
               with:
                   ref: ${{ github.sha }}
 
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            # Host ~/.m2 is mounted into the dev image (see docker-build.sh);
+            # persist it across ephemeral runners so Maven doesn't redownload
+            # JUnit/java-gi on every run.
+            - name: Cache Maven repository
+              uses: actions/cache@v4
+              with:
+                  path: ~/.m2/repository
+                  key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-m2-
+
             - name: Build Docker image
               run: ./docker-build.sh build
 

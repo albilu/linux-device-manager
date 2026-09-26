@@ -17,6 +17,20 @@ jobs:
               with:
                   ref: ${{ github.sha }}
 
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            # Host ~/.m2 is mounted into the dev image (see docker-build.sh);
+            # persist it across ephemeral runners so packaging doesn't
+            # redownload JUnit/java-gi on every tag build.
+            - name: Cache Maven repository
+              uses: actions/cache@v4
+              with:
+                  path: ~/.m2/repository
+                  key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-m2-
+
             - name: Extract version from tag
               id: version
               env:
@@ -49,6 +63,20 @@ jobs:
               env:
                   VERSION: ${{ steps.version.outputs.version }}
               run: docker run --rm -e VERSION -v "$(pwd)/packaging/dist:/pkgs:ro" ubuntu:24.04 bash -c 'apt-get update -qq && apt-get install -y -qq "/pkgs/linux-device-manager_${VERSION}-1_amd64.deb" && test -x /usr/bin/linux-device-manager'
+
+            # GNOME Platform/Sdk (~GBs) are re-downloaded by
+            # build-flatpak.sh otherwise; the builder dir holds its own
+            # incremental cache. Releases are infrequent so a best-effort
+            # restore is enough — a miss just falls back to full download.
+            - name: Cache Flatpak runtimes
+              uses: actions/cache@v4
+              with:
+                  path: |
+                      ~/.local/share/flatpak
+                      packaging/flatpak/.flatpak-builder
+                  key: ${{ runner.os }}-flatpak-gnome-48-${{ hashFiles('packaging/flatpak/org.ldm.LinuxDeviceManager.yml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-flatpak-gnome-48-
 
             - name: Build Flatpak bundle
               env:
