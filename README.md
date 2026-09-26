@@ -1,8 +1,8 @@
 # Linux Device Manager
 
-[![Test CI](https://github.com/albilu/linux-device-manager/actions/workflows/test-ci.yml/badge.svg)](https://github.com/albilu/linux-device-manager/actions/workflows/test-ci.yml)
-[![Release CI](https://github.com/albilu/linux-device-manager/actions/workflows/release-ci.yml/badge.svg)](https://github.com/albilu/linux-device-manager/actions/workflows/release-ci.yml)
-[![GitHub release](https://img.shields.io/github/v/release/albilu/linux-device-manager)](https://github.com/albilu/linux-device-manager/releases)
+[![Test CI](https://github.com/getldm/linux-device-manager/actions/workflows/test-ci.yml/badge.svg)](https://github.com/getldm/linux-device-manager/actions/workflows/test-ci.yml)
+[![Release CI](https://github.com/getldm/linux-device-manager/actions/workflows/release-ci.yml/badge.svg)](https://github.com/getldm/linux-device-manager/actions/workflows/release-ci.yml)
+[![GitHub release](https://img.shields.io/github/v/release/getldm/linux-device-manager)](https://github.com/getldm/linux-device-manager/releases)
 [![Java 25](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org/projects/jdk/25/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Platform: Linux](https://img.shields.io/badge/Platform-Linux-lightgrey.svg)](packaging/)

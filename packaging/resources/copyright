@@ -1,10 +1,10 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: linux-device-manager
 Upstream-Contact: Linux Device Manager <dev@example.com>
-Source: https://github.com/albilu/linux-device-manager
+Source: https://github.com/getldm/linux-device-manager
 
 Files: *
 Copyright: Linux Device Manager contributors
 License: GPL-3.0-or-later
   See /usr/share/common-licenses/GPL-3 or the LICENSE file in the
-  upstream repository (https://github.com/albilu/linux-device-manager).
+  upstream repository (https://github.com/getldm/linux-device-manager).

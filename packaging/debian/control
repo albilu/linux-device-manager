@@ -13,4 +13,4 @@ Description: View and manage hardware devices
  devices through a privileged helper governed by polkit.
  .
  Bundles a trimmed JRE (jlink). Depends on the system GTK4 runtime.
-Homepage: https://github.com/albilu/linux-device-manager
+Homepage: https://github.com/getldm/linux-device-manager

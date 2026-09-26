@@ -22,10 +22,10 @@
     <category>System</category>
     <category>HardwareSettings</category>
   </categories>
-  <url type="homepage">https://github.com/albilu/linux-device-manager</url>
+  <url type="homepage">https://github.com/getldm/linux-device-manager</url>
   <screenshots>
     <screenshot type="default">
-      <image>https://raw.githubusercontent.com/albilu/linux-device-manager/main/docs/wiki/images/screenshot.png</image>
+      <image>https://raw.githubusercontent.com/getldm/linux-device-manager/main/docs/wiki/images/screenshot.png</image>
       <caption>Category tree with device detail tabs</caption>
     </screenshot>
   </screenshots>

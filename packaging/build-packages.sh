@@ -183,7 +183,7 @@ pkgname = ${APP_ID_DIR}
 pkgbase = ${APP_ID_DIR}
 pkgver = ${VERSION}-${RELEASE}
 pkgdesc = View and manage hardware devices (bundled Java runtime)
-url = https://github.com/albilu/linux-device-manager
+url = https://github.com/getldm/linux-device-manager
 arch = x86_64
 license = GPL-3.0-or-later
 depend = gtk4>=4.14.5
