@@ -32,13 +32,13 @@ Linux Device Manager (LDM) combines sysfs, udev, and proven tools — `lspci`, `
 <details>
 <summary>Requirements</summary>
 
-- GTK 4 (>= 4.14.5) for native packages; bundled in the AppImage
+- GTK 4 (>= 4.14.5)
 - policykit-1, udev/systemd
 - Optional detail enrichment: `lspci` (pciutils), `lsusb` (usbutils), `modinfo` (kmod), `lshw`, `journalctl`, `dmesg`, `udevadm`
 
 </details>
 
-Packages are produced for Debian/Ubuntu (`.deb`), Fedora/RHEL (`.rpm`), Arch (`pkg.tar.zst`), plus a portable AppImage. Each bundles a trimmed Java 25 runtime via `jlink`. The AppImage also bundles GTK4 and runs on glibc 2.35+ systems (Ubuntu 22.04 or newer) without installing GTK or Java. Native packages use the host GTK4. Device enable/disable requires the host-installed privileged helper and polkit policy provided by a native package.
+Packages are produced for Debian/Ubuntu (`.deb`), Fedora/RHEL (`.rpm`), Arch (`pkg.tar.zst`), plus a portable AppImage. Each bundles a trimmed Java 25 runtime via `jlink`.
 
 ```sh
 # Debian/Ubuntu
@@ -50,14 +50,14 @@ sudo rpm -i linux-device-manager-*.rpm
 # Arch
 sudo pacman -U linux-device-manager-*.pkg.tar.zst
 
-# AppImage (bundles GTK4 and Java)
+# AppImage
 chmod +x LinuxDeviceManager-*-x86_64.AppImage
 ./LinuxDeviceManager-*-x86_64.AppImage
 ```
 
 ## Building from source
 
-Source builds use the `ldm-dev` Docker image (`eclipse-temurin:25-jdk-jammy` + GTK 4.14.5 built from pinned sources, hardware tooling, Xvfb, packaging toolchain) so host and CI share one environment. Building GTK on Ubuntu 22.04 keeps the AppImage's glibc requirement at 2.35; its X11 and Wayland backends are both included.
+Source builds use the `ldm-dev` Docker image (`eclipse-temurin:25-jdk-jammy` + GTK 4.14.5, hardware tooling, Xvfb, packaging toolchain) so host and CI share one environment.
 
 ```sh
 make build     # build the ldm-dev Docker image
