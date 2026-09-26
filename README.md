@@ -38,7 +38,7 @@ Linux Device Manager (LDM) combines sysfs, udev, and proven tools — `lspci`, `
 
 </details>
 
-Packages are produced for Debian/Ubuntu (`.deb`), Fedora/RHEL (`.rpm`), Arch (`pkg.tar.zst`), plus portable AppImage and Flatpak. Each bundles a trimmed Java 25 runtime via `jlink`; GTK4 comes from the host (or GNOME runtime for Flatpak). 
+Packages are produced for Debian/Ubuntu (`.deb`), Fedora/RHEL (`.rpm`), Arch (`pkg.tar.zst`), plus a portable AppImage. Each bundles a trimmed Java 25 runtime via `jlink`; GTK4 comes from the host.
 
 ```sh
 # Debian/Ubuntu
@@ -52,13 +52,7 @@ sudo pacman -U linux-device-manager-*.pkg.tar.zst
 
 # AppImage (needs host GTK4)
 ./LinuxDeviceManager-*-x86_64.AppImage
-
-# Flatpak
-flatpak install --user ./io.github.getldm.linux-device-manager.flatpak
-flatpak run io.github.getldm.linux-device-manager
 ```
-
-> Flatpak sandbox note: inspection works fully; the privileged enable/disable helper is degraded in the sandbox.
 
 ## Building from source
 

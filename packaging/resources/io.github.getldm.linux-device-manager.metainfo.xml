@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- AppStream metainfo for Linux Device Manager.
-     The Flatpak build renames this file (and the stock icon reference) to the
-     Flatpak app-id; keep <id>, <launchable> and <icon type="stock"> in sync. -->
+     Keep <id>, <launchable> and <icon type="stock"> in sync. -->
 <component type="desktop-application">
   <id>io.github.getldm.linux-device-manager</id>
   <metadata_license>CC0-1.0</metadata_license>

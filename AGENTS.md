@@ -8,9 +8,8 @@
   `modinfo`, `journalctl`, `dmesg`, `udevadm` via `ToolLocator`); `gui-gtk`
   owns the GTK4 application and depends on `core`.
 - The production entry point is `org.ldm.gtk.LinuxDeviceManagerApp`; the
-  in-code GTK application id is `io.github.getldm.linux-device-manager`
-  (matching the Flatpak id, so no `--own-name` permission is needed, and
-  `StartupWMClass` mirrors it for window matching).
+  in-code GTK application id is `io.github.getldm.linux-device-manager`,
+  and `StartupWMClass` mirrors it for window matching.
 - The build targets Java 25 (java-gi bindings). The Docker image is based on
   `eclipse-temurin:25-jdk` and supplies the native tools and GTK libraries.
 
@@ -29,8 +28,7 @@
   `make debug` for the suspended JDWP server on port 5005.
 - Use `make package` to create `.deb`, `.rpm`, `.pkg.tar.zst`, and AppImage
   artifacts under `packaging/dist/` from the single `packaging/stage` tree
-  (JARs + bundled jlink runtime); use `packaging/flatpak/build-flatpak.sh`
-  for the Flatpak bundle, which consumes the same stage.
+  (JARs + bundled jlink runtime).
 
 ## Testing Constraints
 - Core tests are hermetic (fake sysfs/command runners); `NativeWorkflowTest`
@@ -66,12 +64,10 @@
   is load-bearing for the device action dialogs; keep the Dockerfile GUI
   libs, the rpm spec, and the PKGBUILD in sync with it.
 - AppStream needs raster icons (64x64 mandatory) and the metainfo stock
-  `<icon>` must match the installed id; Flatpak renames desktop/metainfo/
-  icons to the app-id at build time.
-- Upstream has no `LICENSE` file yet: `UNKNOWN`/`custom:UNKNOWN`/
-  `LicenseRef-UPSTREAM-TBD` placeholders mark every metadata slot (see
-  `packaging/flatpak/flathub/FLATHUB.md`). Replace them all when a license
-  is declared — never invent one.
+  `<icon>` must match the installed id.
+- The project license is GPL-3.0-or-later (`LICENSE`); keep the SPDX
+  identifier in sync across the rpm spec, PKGBUILD (+ `.PKGINFO`), debian
+  copyright, and metainfo `project_license`.
 
 ## Project Rules
 - Do not leave methods unimplemented.

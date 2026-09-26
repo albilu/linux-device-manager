@@ -144,18 +144,4 @@ else
     echo "SKIP: AppImage not built (SKIP_APPIMAGE=1?)"
 fi
 
-# ---- Flatpak bundle presence (sandbox launch is opt-in via FLATPAK_SMOKE=1) ----
-FLATPAK_BUNDLE="$DIST/io.github.getldm.linux-device-manager.flatpak"
-if [[ -s "$FLATPAK_BUNDLE" ]]; then
-    echo "OK: Flatpak bundle present"
-    if [[ "${FLATPAK_SMOKE:-0}" == "1" ]]; then
-        flatpak install --user -y --bundle "$FLATPAK_BUNDLE"
-        xvfb-run -a timeout -k 10s 25s flatpak run io.github.getldm.linux-device-manager \
-            > "$CHECK_ROOT/flatpak.log" 2>&1 || [[ "$?" == 124 ]]
-        echo "OK: Flatpak sandbox launch ran until timeout"
-    fi
-else
-    echo "SKIP: Flatpak bundle not built (see packaging/flatpak/)"
-fi
-
 echo 'All package formats and the bundled launcher passed'

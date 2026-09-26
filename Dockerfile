@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y \
     dbus-x11 \
     xauth \
     xdotool \
-    # Package building tools (deb/rpm/Arch/AppImage/Flatpak)
+    # Package building tools (deb/rpm/Arch/AppImage)
     dpkg-dev \
     fakeroot \
     rpm \

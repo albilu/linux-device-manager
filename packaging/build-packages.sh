@@ -2,7 +2,7 @@
 # Unified package builder for Linux Device Manager (GTK4).
 # Builds the app JARs + a trimmed jlink runtime, stages ONE install tree under
 # packaging/stage, then assembles .deb / .rpm / .pkg.tar.zst / AppImage from
-# that tree (Flatpak consumes the same stage via packaging/flatpak/).
+# that tree.
 # Run inside the ldm-dev Docker image (or any Linux with JDK 25, maven,
 # dpkg-deb, rpmbuild, bsdtar, zstd). Artifacts land in packaging/dist/.
 set -euo pipefail
@@ -289,4 +289,4 @@ build_appimage
 
 log "Artifacts:"
 ls -la "$DIST/"*.deb "$DIST/"*.rpm "$DIST/"*.pkg.tar.zst "$DIST/"*.AppImage 2>/dev/null || true
-log "Done. (Flatpak consumes packaging/stage via packaging/flatpak/build-flatpak.sh.)"
+log "Done."

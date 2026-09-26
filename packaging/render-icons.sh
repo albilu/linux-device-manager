@@ -2,7 +2,7 @@
 # Regenerate the checked-in PNGs and index.theme from the SVG artwork after
 # editing the logo. Requires Inkscape (preferred) or rsvg-convert; ordinary
 # builds consume the generated files directly (AppStream compose needs raster
-# icons — the 64x64 PNG is mandatory — and Flatpak exports require square art).
+# icons — the 64x64 PNG is mandatory — and icon exports require square art).
 set -euo pipefail
 ICON_ROOT="$(cd "$(dirname "$0")/.." && pwd)/gui-gtk/src/main/resources/icons/hicolor"
 ICON_NAME=linux-device-manager
