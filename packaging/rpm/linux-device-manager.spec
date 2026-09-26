@@ -51,6 +51,7 @@ rm -f %{buildroot}/usr/share/icons/hicolor/index.theme
 /usr/share/polkit-1/actions/org.ldm.policy
 /usr/share/applications/linux-device-manager.desktop
 /usr/share/metainfo/org.ldm.LinuxDeviceManager.metainfo.xml
+/usr/share/appdata/linux-device-manager.appdata.xml
 /usr/share/man/man1/linux-device-manager.1
 /usr/share/icons/hicolor/*/apps/linux-device-manager.svg
 /usr/share/icons/hicolor/*x*/apps/linux-device-manager.png
