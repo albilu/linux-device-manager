@@ -111,10 +111,10 @@ cp helper/org.ldm.policy "$STAGE/usr/share/polkit-1/actions/"
 
 # Desktop entry, metainfo, man page, copyright.
 cp packaging/resources/linux-device-manager.desktop "$STAGE/usr/share/applications/"
-cp packaging/resources/org.ldm.LinuxDeviceManager.metainfo.xml "$STAGE/usr/share/metainfo/"
+cp packaging/resources/io.github.getldm.linux-device-manager.metainfo.xml "$STAGE/usr/share/metainfo/"
 # Legacy appdata path with the same payload: old AppImage/appdir linters only
 # recognize *.appdata.xml, while modern stores read metainfo/.
-cp packaging/resources/org.ldm.LinuxDeviceManager.metainfo.xml \
+cp packaging/resources/io.github.getldm.linux-device-manager.metainfo.xml \
     "$STAGE/usr/share/appdata/linux-device-manager.appdata.xml"
 cp packaging/resources/linux-device-manager.1 "$STAGE/usr/share/man/man1/"
 cp packaging/resources/copyright "$STAGE/usr/share/doc/${APP_ID_DIR}/copyright"

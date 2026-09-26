@@ -2,7 +2,7 @@
 # Consumes packaging/stage (type: dir) so the Flatpak ships the exact same
 # payload as deb/rpm/arch. GTK comes from the GNOME runtime — never bundle it.
 # Build: packaging/flatpak/build-flatpak.sh [VERSION]
-app-id: org.ldm.LinuxDeviceManager
+app-id: io.github.getldm.linux-device-manager
 branch: stable
 runtime: org.gnome.Platform
 runtime-version: '48'
@@ -44,19 +44,19 @@ modules:
         mkdir -p /app/share/applications
         sed -e 's|^Exec=.*|Exec=linux-device-manager|' \
             -e 's|^TryExec=.*|TryExec=linux-device-manager|' \
-            -e 's|^Icon=.*|Icon=org.ldm.LinuxDeviceManager|' \
+            -e 's|^Icon=.*|Icon=io.github.getldm.linux-device-manager|' \
             usr/share/applications/linux-device-manager.desktop \
-            > /app/share/applications/org.ldm.LinuxDeviceManager.desktop
-        chmod 644 /app/share/applications/org.ldm.LinuxDeviceManager.desktop
+            > /app/share/applications/io.github.getldm.linux-device-manager.desktop
+        chmod 644 /app/share/applications/io.github.getldm.linux-device-manager.desktop
       # Metainfo renamed to the app-id (id + launchable + stock icon)
       - |
         mkdir -p /app/share/metainfo
-        sed -e 's|<id>.*</id>|<id>org.ldm.LinuxDeviceManager</id>|' \
-            -e 's|<launchable type="desktop-id">.*</launchable>|<launchable type="desktop-id">org.ldm.LinuxDeviceManager.desktop</launchable>|' \
-            -e 's|<icon type="stock">linux-device-manager</icon>|<icon type="stock">org.ldm.LinuxDeviceManager</icon>|' \
-            usr/share/metainfo/org.ldm.LinuxDeviceManager.metainfo.xml \
-            > /app/share/metainfo/org.ldm.LinuxDeviceManager.metainfo.xml
-        chmod 644 /app/share/metainfo/org.ldm.LinuxDeviceManager.metainfo.xml
+        sed -e 's|<id>.*</id>|<id>io.github.getldm.linux-device-manager</id>|' \
+            -e 's|<launchable type="desktop-id">.*</launchable>|<launchable type="desktop-id">io.github.getldm.linux-device-manager.desktop</launchable>|' \
+            -e 's|<icon type="stock">linux-device-manager</icon>|<icon type="stock">io.github.getldm.linux-device-manager</icon>|' \
+            usr/share/metainfo/io.github.getldm.linux-device-manager.metainfo.xml \
+            > /app/share/metainfo/io.github.getldm.linux-device-manager.metainfo.xml
+        chmod 644 /app/share/metainfo/io.github.getldm.linux-device-manager.metainfo.xml
       # Hicolor icons renamed to the app-id (svg and png, every size)
       - |
         for d in usr/share/icons/hicolor/*/apps; do
@@ -65,11 +65,11 @@ modules:
           mkdir -p "$dest"
           for f in "$d"/linux-device-manager.*; do
             [ -f "$f" ] || continue
-            install -m644 "$f" "$dest/org.ldm.LinuxDeviceManager.${f##*.}"
+            install -m644 "$f" "$dest/io.github.getldm.linux-device-manager.${f##*.}"
           done
         done
       - install -Dm644 usr/share/icons/hicolor/index.theme /app/share/icons/hicolor/index.theme
       # Man page and copyright
       - install -Dm644 usr/share/man/man1/linux-device-manager.1 /app/share/man/man1/linux-device-manager.1
       - install -Dm644 usr/share/doc/linux-device-manager/copyright /app/share/doc/linux-device-manager/copyright
-      - install -Dm644 usr/share/licenses/linux-device-manager/copyright /app/share/licenses/org.ldm.LinuxDeviceManager/copyright
+      - install -Dm644 usr/share/licenses/linux-device-manager/copyright /app/share/licenses/io.github.getldm.linux-device-manager/copyright

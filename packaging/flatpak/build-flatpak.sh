@@ -10,7 +10,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 FLATPAK_DIR="$ROOT/packaging/flatpak"
-APP_ID=org.ldm.LinuxDeviceManager
+APP_ID=io.github.getldm.linux-device-manager
 RUNTIME_VERSION=48
 
 log() { echo "[ldm-flatpak] $*"; }

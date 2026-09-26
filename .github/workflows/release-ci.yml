@@ -74,7 +74,7 @@ jobs:
                   path: |
                       ~/.local/share/flatpak
                       packaging/flatpak/.flatpak-builder
-                  key: ${{ runner.os }}-flatpak-gnome-48-${{ hashFiles('packaging/flatpak/org.ldm.LinuxDeviceManager.yml') }}
+                  key: ${{ runner.os }}-flatpak-gnome-48-${{ hashFiles('packaging/flatpak/io.github.getldm.linux-device-manager.yml') }}
                   restore-keys: |
                       ${{ runner.os }}-flatpak-gnome-48-
 
@@ -97,7 +97,7 @@ jobs:
                       "packaging/dist/linux-device-manager-${VERSION}-1.x86_64.rpm" \
                       "packaging/dist/linux-device-manager-${VERSION}-1-x86_64.pkg.tar.zst" \
                       "packaging/dist/LinuxDeviceManager-${VERSION}-x86_64.AppImage" \
-                      "packaging/dist/org.ldm.LinuxDeviceManager.flatpak"; do
+                      "packaging/dist/io.github.getldm.linux-device-manager.flatpak"; do
                       test -s "$artifact" || { echo "MISSING artifact: $artifact" >&2; exit 1; }
                   done
 
@@ -113,7 +113,7 @@ jobs:
                       - `linux-device-manager-${{ steps.version.outputs.version }}-1.x86_64.rpm` — Fedora/RHEL
                       - `linux-device-manager-${{ steps.version.outputs.version }}-1-x86_64.pkg.tar.zst` — Arch Linux
                       - `LinuxDeviceManager-${{ steps.version.outputs.version }}-x86_64.AppImage` — portable (needs host GTK4)
-                      - `org.ldm.LinuxDeviceManager.flatpak` — Flatpak bundle (GNOME runtime)
+                      - `io.github.getldm.linux-device-manager.flatpak` — Flatpak bundle (GNOME runtime)
 
             # Upload via gh CLI with explicit paths: the action's glob-based
             # `files:` upload silently skipped the .rpm (file provably present),
@@ -129,5 +129,5 @@ jobs:
                       "packaging/dist/linux-device-manager-${VERSION}-1.x86_64.rpm" \
                       "packaging/dist/linux-device-manager-${VERSION}-1-x86_64.pkg.tar.zst" \
                       "packaging/dist/LinuxDeviceManager-${VERSION}-x86_64.AppImage" \
-                      "packaging/dist/org.ldm.LinuxDeviceManager.flatpak" \
+                      "packaging/dist/io.github.getldm.linux-device-manager.flatpak" \
                       --clobber

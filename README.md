@@ -54,8 +54,8 @@ sudo pacman -U linux-device-manager-*.pkg.tar.zst
 ./LinuxDeviceManager-*-x86_64.AppImage
 
 # Flatpak
-flatpak install --user ./org.ldm.LinuxDeviceManager.flatpak
-flatpak run org.ldm.LinuxDeviceManager
+flatpak install --user ./io.github.getldm.linux-device-manager.flatpak
+flatpak run io.github.getldm.linux-device-manager
 ```
 
 > Flatpak sandbox note: inspection works fully; the privileged enable/disable helper is degraded in the sandbox.

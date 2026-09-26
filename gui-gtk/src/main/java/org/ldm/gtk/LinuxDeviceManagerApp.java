@@ -62,7 +62,7 @@ import org.javagi.base.Out;
  */
 public final class LinuxDeviceManagerApp {
 
-    private static final String APP_VERSION = "0.2.1";
+    private static final String APP_VERSION = "0.2.2";
 
     private final Application app;
     private final DeviceManager manager;

@@ -86,7 +86,7 @@ for format in deb rpm arch; do
     grep -qx 'Exec=linux-device-manager' "$root/usr/share/applications/linux-device-manager.desktop"
     grep -qx 'Icon=linux-device-manager' "$root/usr/share/applications/linux-device-manager.desktop"
     grep -qx 'StartupWMClass=com.example.DeviceManager' "$root/usr/share/applications/linux-device-manager.desktop"
-    test -s "$root/usr/share/metainfo/org.ldm.LinuxDeviceManager.metainfo.xml"
+    test -s "$root/usr/share/metainfo/io.github.getldm.linux-device-manager.metainfo.xml"
     test -s "$root/usr/share/appdata/linux-device-manager.appdata.xml"
     test -s "$root/usr/share/man/man1/linux-device-manager.1"
     test -s "$root/usr/share/doc/linux-device-manager/copyright"
@@ -145,12 +145,12 @@ else
 fi
 
 # ---- Flatpak bundle presence (sandbox launch is opt-in via FLATPAK_SMOKE=1) ----
-FLATPAK_BUNDLE="$DIST/org.ldm.LinuxDeviceManager.flatpak"
+FLATPAK_BUNDLE="$DIST/io.github.getldm.linux-device-manager.flatpak"
 if [[ -s "$FLATPAK_BUNDLE" ]]; then
     echo "OK: Flatpak bundle present"
     if [[ "${FLATPAK_SMOKE:-0}" == "1" ]]; then
         flatpak install --user -y --bundle "$FLATPAK_BUNDLE"
-        xvfb-run -a timeout -k 10s 25s flatpak run org.ldm.LinuxDeviceManager \
+        xvfb-run -a timeout -k 10s 25s flatpak run io.github.getldm.linux-device-manager \
             > "$CHECK_ROOT/flatpak.log" 2>&1 || [[ "$?" == 124 ]]
         echo "OK: Flatpak sandbox launch ran until timeout"
     fi
