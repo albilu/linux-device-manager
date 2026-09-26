@@ -8,6 +8,9 @@ permissions:
     contents: read
 
 jobs:
+
+    validation:
+        uses: ./.github/workflows/test-ci.yml
     release:
         runs-on: ubuntu-latest
         permissions:
