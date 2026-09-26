@@ -44,7 +44,7 @@ modules:
         url: https://github.com/getldm/linux-device-manager.git
         # Release tag and its commit sha, updated per release.
         tag: v0.2.3
-        commit: __COMMIT__
+        commit: f3e1dbdf8b32c58ea35561faa51d5389e8a64570
       # Vendored Maven Central artifacts; see generate-maven-sources.py.
       # Extracted to .m2/repository/ in the build dir; the build below
       # points Maven at it, so no network access is needed.
