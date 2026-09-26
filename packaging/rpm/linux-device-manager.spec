@@ -10,7 +10,7 @@ Name:           %{name}
 Version:        %{version}
 Release:        %{release}%{?dist}
 Summary:        View and manage hardware devices
-License:        UNKNOWN
+License:        GPL-3.0-or-later
 URL:            https://github.com/albilu/linux-device-manager
 AutoReqProv:    no
 Requires:       gtk4 >= 4.14.5

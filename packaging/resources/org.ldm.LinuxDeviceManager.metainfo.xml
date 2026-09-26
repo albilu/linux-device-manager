@@ -5,8 +5,7 @@
 <component type="desktop-application">
   <id>org.ldm.LinuxDeviceManager</id>
   <metadata_license>CC0-1.0</metadata_license>
-  <!-- TODO: set the real SPDX license once upstream adds a LICENSE file. -->
-  <project_license>LicenseRef-UPSTREAM-TBD</project_license>
+  <project_license>GPL-3.0-or-later</project_license>
   <name>Linux Device Manager</name>
   <summary>View and manage hardware devices</summary>
   <description>
@@ -24,6 +23,15 @@
     <category>HardwareSettings</category>
   </categories>
   <url type="homepage">https://github.com/albilu/linux-device-manager</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/albilu/linux-device-manager/main/docs/wiki/images/screenshot.png</image>
+      <caption>Category tree with device detail tabs</caption>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="0.2.0" date="2026-09-26"/>
+  </releases>
   <provides>
     <binary>linux-device-manager</binary>
   </provides>

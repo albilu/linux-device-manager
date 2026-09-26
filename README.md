@@ -4,6 +4,7 @@
 [![Release CI](https://github.com/albilu/linux-device-manager/actions/workflows/release-ci.yml/badge.svg)](https://github.com/albilu/linux-device-manager/actions/workflows/release-ci.yml)
 [![GitHub release](https://img.shields.io/github/v/release/albilu/linux-device-manager)](https://github.com/albilu/linux-device-manager/releases)
 [![Java 25](https://img.shields.io/badge/Java-25-orange.svg)](https://openjdk.org/projects/jdk/25/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
 [![Platform: Linux](https://img.shields.io/badge/Platform-Linux-lightgrey.svg)](packaging/)
 
 > A native GTK device manager for Linux — every bus, driver, and kernel event in one clean category tree, with safe enable/disable.
@@ -37,23 +38,23 @@ Linux Device Manager (LDM) combines sysfs, udev, and proven tools — `lspci`, `
 
 </details>
 
-Packages are produced for Debian/Ubuntu (`.deb`), Fedora/RHEL (`.rpm`), Arch (`pkg.tar.zst`), plus portable AppImage and Flatpak. Each bundles a trimmed Java 25 runtime via `jlink`; GTK4 comes from the host (or GNOME runtime for Flatpak). Artifacts land in `packaging/dist/`.
+Packages are produced for Debian/Ubuntu (`.deb`), Fedora/RHEL (`.rpm`), Arch (`pkg.tar.zst`), plus portable AppImage and Flatpak. Each bundles a trimmed Java 25 runtime via `jlink`; GTK4 comes from the host (or GNOME runtime for Flatpak). 
 
 ```sh
 # Debian/Ubuntu
-sudo apt install ./packaging/dist/linux-device-manager_*.deb  # or sudo dpkg -i packaging/dist/linux-device-manager_*.deb
+sudo apt install ./linux-device-manager_*.deb  # or sudo dpkg -i linux-device-manager_*.deb
 
 # Fedora/RHEL
-sudo rpm -i packaging/dist/linux-device-manager-*.rpm
+sudo rpm -i linux-device-manager-*.rpm
 
 # Arch
-sudo pacman -U packaging/dist/linux-device-manager-*.pkg.tar.zst
+sudo pacman -U linux-device-manager-*.pkg.tar.zst
 
 # AppImage (needs host GTK4)
-./packaging/dist/LinuxDeviceManager-*-x86_64.AppImage
+./LinuxDeviceManager-*-x86_64.AppImage
 
 # Flatpak
-flatpak install --user ./packaging/dist/org.ldm.LinuxDeviceManager.flatpak
+flatpak install --user ./org.ldm.LinuxDeviceManager.flatpak
 flatpak run org.ldm.LinuxDeviceManager
 ```
 

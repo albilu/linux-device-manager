@@ -185,7 +185,7 @@ pkgver = ${VERSION}-${RELEASE}
 pkgdesc = View and manage hardware devices (bundled Java runtime)
 url = https://github.com/albilu/linux-device-manager
 arch = x86_64
-license = custom:UNKNOWN
+license = GPL-3.0-or-later
 depend = gtk4>=4.14.5
 depend = polkit
 depend = systemd

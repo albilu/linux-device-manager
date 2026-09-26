@@ -5,8 +5,6 @@ Source: https://github.com/albilu/linux-device-manager
 
 Files: *
 Copyright: Linux Device Manager contributors
-# TODO: upstream has no LICENSE file yet; replace the license paragraph below
-# once one is declared and mirror it into packaging metadata (debian/control,
-# rpm spec, PKGBUILD, metainfo project_license).
-License: UNKNOWN
-  No license has been declared for this upstream project yet.
+License: GPL-3.0-or-later
+  See /usr/share/common-licenses/GPL-3 or the LICENSE file in the
+  upstream repository (https://github.com/albilu/linux-device-manager).
