@@ -38,8 +38,7 @@
       <plugins>
         <!-- Pin every lifecycle/plugin version used by the build. Unpinned
              versions float with the Maven distribution (Debian vs Apache
-             defaults differ) and break offline Flathub builds, which must
-             resolve byte-identical artifacts from maven-sources.json. -->
+             defaults differ), breaking reproducible offline builds. -->
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-compiler-plugin</artifactId>
